@@ -143,12 +143,20 @@ class TodosPageGenerator
     /**
      * Save the Todos page content to the collectives folder and reset the
      * Text editor state of the Todos page (its content changed externally).
+     *
+     * If the existing page already carries the same content except for the
+     * auto-generated "Last updated" timestamp, the page is left untouched:
+     * rewriting it would change the file's etag behind open editor sessions
+     * (error dialogs, conflict diffs), even though no todo changed.
      */
     private function saveTodosPage(Folder $collectiveFolder, string $content): void
     {
         if ($collectiveFolder->nodeExists(self::TODOS_PAGE_FILENAME)) {
             $todosFile = $collectiveFolder->get(self::TODOS_PAGE_FILENAME);
             if ($todosFile instanceof \OCP\Files\File) {
+                if ($this->isUnchangedExceptTimestamp((string)$todosFile->getContent(), $content)) {
+                    return;
+                }
                 $todosFile->putContent($content);
                 $this->textResetter->resetForFile((int)$todosFile->getId());
                 return;
@@ -156,5 +164,23 @@ class TodosPageGenerator
         }
         $todosFile = $collectiveFolder->newFile(self::TODOS_PAGE_FILENAME, $content);
         $this->textResetter->resetForFile((int)$todosFile->getId());
+    }
+
+    /**
+     * Whether the current and the freshly generated Todos page content are
+     * identical except for the "Last updated" timestamp line.
+     */
+    private function isUnchangedExceptTimestamp(string $current, string $generated): bool
+    {
+        return $this->withoutTimestamp($current) === $this->withoutTimestamp($generated);
+    }
+
+    private function withoutTimestamp(string $content): string
+    {
+        return (string)preg_replace(
+            '/^\*Auto-generated from all pages in this collectives\. Last updated: [^\n]*$/m',
+            '*Auto-generated*',
+            $content
+        );
     }
 }

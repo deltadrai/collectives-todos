@@ -28,6 +28,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Checking a checkbox on the Todos page and saving broke the editing session: the reverse sync's
+  regeneration of the Todos page ran nested inside the save and rewrote the page with a fresh "Last
+  updated" timestamp, changing the etag under the open editor ("Error saving the document", conflict
+  diff prompts). The Todos page is now only rewritten when its content actually changes (checkbox
+  states, pages, titles); an update that would only refresh the "Last updated" timestamp leaves the
+  file - and open editing sessions - untouched.
 - App bootstrap was silently skipped: `info.xml` declared the full namespace
   (`OCA\CollectiveTodos`), which Nextcloud prefixes with `OCA\` itself, so no class of the app was
   autoloadable. The namespace is now `CollectiveTodos`.

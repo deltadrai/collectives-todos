@@ -253,4 +253,102 @@ class TodosPageGeneratorTest extends TestCase
 
         $this->generator->regenerateTodosPage($this->collectiveFolder);
     }
+
+    /**
+     * Content of the Todos page as generateContent() produces it for a single
+     * page with one checkbox, with the given "Last updated" timestamp.
+     */
+    private function todosPageContent(string $timestamp, string $checkboxLine): string
+    {
+        return "# Todos\n"
+            . "\n"
+            . "*Auto-generated from all pages in this collectives. Last updated: " . $timestamp . "* \n"
+            . "\n"
+            . "## Meeting Notes\n"
+            . "\n"
+            . $checkboxLine . "\n";
+    }
+
+    private function cacheWithOneCheckbox(bool $checked): void
+    {
+        $this->aggregator->method('getAllCheckboxes')->willReturn([
+            '4127' => [
+                'title' => 'Meeting Notes',
+                'page_id' => '4127',
+                'last_modified' => '2026-10-01T07:00:00Z',
+                'checkboxes' => [
+                    ['text' => 'Prepare agenda', 'checked' => $checked, 'line' => 5, 'raw' => '- [ ] Prepare agenda'],
+                ],
+            ],
+        ]);
+    }
+
+    public function testRegenerateSkipsWriteAndResetWhenOnlyTimestampChanged(): void
+    {
+        $todosFile = $this->createMock(File::class);
+        $todosFile->method('getId')->willReturn(4148);
+        // Same content the generator will produce, with an older timestamp
+        $todosFile->method('getContent')
+            ->willReturn($this->todosPageContent('2026-09-01 07:00:00 UTC', '- [ ] Prepare agenda'));
+
+        $this->cacheWithOneCheckbox(false);
+        $this->collectiveFolder->method('nodeExists')->willReturn(true);
+        $this->collectiveFolder->method('get')->willReturn($todosFile);
+
+        $todosFile->expects($this->never())->method('putContent');
+        $this->textResetter->expects($this->never())->method('resetForFile');
+
+        $this->generator->regenerateTodosPage($this->collectiveFolder);
+    }
+
+    public function testRegenerateWritesAndResetsWhenCheckboxStateChanged(): void
+    {
+        $todosFile = $this->createMock(File::class);
+        $todosFile->method('getId')->willReturn(4148);
+        $todosFile->method('getContent')
+            ->willReturn($this->todosPageContent('2026-09-01 07:00:00 UTC', '- [ ] Prepare agenda'));
+
+        $this->cacheWithOneCheckbox(true);
+        $this->collectiveFolder->method('nodeExists')->willReturn(true);
+        $this->collectiveFolder->method('get')->willReturn($todosFile);
+
+        $captured = '';
+        $todosFile->expects($this->once())
+            ->method('putContent')
+            ->willReturnCallback(function ($content) use (&$captured): void {
+                $captured = (string)$content;
+            });
+        $this->textResetter->expects($this->once())
+            ->method('resetForFile')
+            ->with(4148);
+
+        $this->generator->regenerateTodosPage($this->collectiveFolder);
+
+        $this->assertStringContainsString('- [x] Prepare agenda', $captured);
+    }
+
+    public function testRegenerateCreatesTodosPageWhenMissing(): void
+    {
+        $createdFile = $this->createMock(File::class);
+        $createdFile->method('getId')->willReturn(4149);
+
+        $this->cacheWithOneCheckbox(false);
+        $this->collectiveFolder->method('nodeExists')->willReturn(false);
+
+        $captured = '';
+        $this->collectiveFolder->expects($this->once())
+            ->method('newFile')
+            ->willReturnCallback(function (string $name, $content = '') use ($createdFile, &$captured) {
+                $captured = (string)$content;
+                $this->assertSame(TodosPageGenerator::TODOS_PAGE_FILENAME, $name);
+                return $createdFile;
+            });
+        $this->textResetter->expects($this->once())
+            ->method('resetForFile')
+            ->with(4149);
+
+        $this->generator->regenerateTodosPage($this->collectiveFolder);
+
+        $this->assertStringContainsString('- [ ] Prepare agenda', $captured);
+    }
 }
