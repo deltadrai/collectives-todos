@@ -104,7 +104,7 @@ class CheckboxAggregator
      * CollectiveStorage::getFolderId() returns the collectives id (as used by
      * the Collectives app); the root folder is resolved via the appdata path.
      */
-    public function getCollectiveFolderFromNode(File $node): Folder
+    public function getCollectiveFolderFromNode(\OCP\Files\Node $node): Folder
     {
         $storage = $node->getStorage();
 

@@ -28,6 +28,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Deleting a page did not clean up the Todos page: the deleted page's section and checkboxes stayed
+  listed. A Collectives page is a folder (the index page is its Readme.md, subpages are further
+  files in it), and deleting it only emits a filesystem event for the folder itself - the markdown
+  files inside vanish without their own events. A new listener for `BeforeNodeDeletedEvent` now
+  collects the markdown pages under a folder before it is deleted, removes them from the cache and
+  regenerates the Todos page. Plain `.md` file deletes keep their previous cleanup path. Restoring a
+  page from the Collectives trash does not re-add it to the Todos page until the page is saved again
+  or `collectives_todos:init` runs.
 - After ticking a checkbox on the Todos page, the source page briefly showed the tick and then
   reverted to its old content, with the editor refusing saves ("File changed in the meantime from
   outside"): the Text app keeps per-file session state (etag, checksum, steps) also for source
