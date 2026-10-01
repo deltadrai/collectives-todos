@@ -173,7 +173,8 @@ class EventFlowTest extends TestCase
             new PageLinkBuilder($collectiveMapper, $pageMapper),
             new TextDocumentResetter($logger)
         );
-        $reverseSync = new TodosReverseSyncService($parser, $aggregator, $this->rootFolder, $logger);
+        $textResetter = new TextDocumentResetter($logger);
+        $reverseSync = new TodosReverseSyncService($parser, $aggregator, $this->rootFolder, $textResetter, $logger);
 
         return new NodeWrittenListener($parser, $aggregator, $generator, $reverseSync, $logger);
     }

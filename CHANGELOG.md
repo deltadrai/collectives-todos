@@ -28,6 +28,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- After ticking a checkbox on the Todos page, the source page briefly showed the tick and then
+  reverted to its old content, with the editor refusing saves ("File changed in the meantime from
+  outside"): the Text app keeps per-file session state (etag, checksum, steps) also for source
+  pages, and the reverse sync's external write desynced it. The Text document state of a source page
+  is now reset when the reverse sync writes it, so the page loads with the synced state and saves
+  work. Unsaved keystrokes in an editing session open on that page at that moment are discarded
+  (same contract the Todos page already has).
 - Checking a checkbox on the Todos page and saving broke the editing session: the reverse sync's
   regeneration of the Todos page ran nested inside the save and rewrote the page with a fresh "Last
   updated" timestamp, changing the etag under the open editor ("Error saving the document", conflict

@@ -24,17 +24,20 @@ class TodosReverseSyncService
     private CheckboxParser $parser;
     private CheckboxAggregator $aggregator;
     private IRootFolder $rootFolder;
+    private TextDocumentResetter $textResetter;
     private LoggerInterface $logger;
 
     public function __construct(
         CheckboxParser $parser,
         CheckboxAggregator $aggregator,
         IRootFolder $rootFolder,
+        TextDocumentResetter $textResetter,
         LoggerInterface $logger
     ) {
         $this->parser = $parser;
         $this->aggregator = $aggregator;
         $this->rootFolder = $rootFolder;
+        $this->textResetter = $textResetter;
         $this->logger = $logger;
     }
 
@@ -206,6 +209,10 @@ class TodosReverseSyncService
 
         if ($applied > 0) {
             $file->putContent(implode("\n", $lines));
+            // The Text editor keeps per-file session state (etag, checksum,
+            // steps) for the source page; without a reset it serves stale
+            // content after our external write and rejects saves
+            $this->textResetter->resetForFile((int)$file->getId());
         }
         return $applied;
     }

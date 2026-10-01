@@ -6,6 +6,7 @@ namespace OCA\CollectiveTodos\Tests\Unit\Service;
 
 use OCA\CollectiveTodos\Service\CheckboxParser;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\TextDocumentResetter;
 use OCA\CollectiveTodos\Service\TodosReverseSyncService;
 use OCP\Files\File;
 use OCP\Files\Folder;
@@ -17,6 +18,7 @@ class TodosReverseSyncServiceTest extends TestCase
 {
     private CheckboxAggregator $aggregator;
     private IRootFolder $rootFolder;
+    private TextDocumentResetter $textResetter;
     private LoggerInterface $logger;
     private Folder $collectiveFolder;
     private TodosReverseSyncService $service;
@@ -25,6 +27,7 @@ class TodosReverseSyncServiceTest extends TestCase
     {
         $this->aggregator = $this->createMock(CheckboxAggregator::class);
         $this->rootFolder = $this->createMock(IRootFolder::class);
+        $this->textResetter = $this->createMock(TextDocumentResetter::class);
         $this->logger = $this->createMock(LoggerInterface::class);
         $this->collectiveFolder = $this->createMock(Folder::class);
 
@@ -32,6 +35,7 @@ class TodosReverseSyncServiceTest extends TestCase
             new CheckboxParser(),
             $this->aggregator,
             $this->rootFolder,
+            $this->textResetter,
             $this->logger
         );
     }
@@ -51,9 +55,10 @@ class TodosReverseSyncServiceTest extends TestCase
         ]);
     }
 
-    private function mockSourceFile(string $content): File
+    private function mockSourceFile(string $content, int $id = 4127): File
     {
         $file = $this->createMock(File::class);
+        $file->method('getId')->willReturn($id);
         $file->method('getContent')->willReturn($content);
         return $file;
     }
@@ -82,6 +87,33 @@ class TodosReverseSyncServiceTest extends TestCase
 
         $this->assertSame(1, $count);
         $this->assertStringContainsString('- [x] Buy milk', $captured);
+    }
+
+    public function testResetsTextDocumentStateOfSyncedSourcePage(): void
+    {
+        $this->cacheWithPage('4127', 'Meeting Notes', [
+            ['text' => 'Buy milk', 'checked' => false, 'line' => 3, 'raw' => '- [ ] Buy milk'],
+        ]);
+
+        $todosContent = "# Todos\n\n"
+            . "## [Meeting Notes](/apps/collectives/jf-protokolle-8/meeting-notes-4127)\n\n"
+            . "- [x] Buy milk\n";
+
+        $file = $this->mockSourceFile("# Meeting Notes\n\n- [ ] Buy milk\n");
+        $this->rootFolder->method('getById')->with(4127)->willReturn([$file]);
+        $file->method('putContent')->willReturnCallback(static function (): void {
+        });
+
+        // The Text editor keeps per-file session state (etag, checksum,
+        // steps) for the source page; without a reset it serves the stale
+        // content and rejects saves after our external write
+        $this->textResetter->expects($this->once())
+            ->method('resetForFile')
+            ->with(4127);
+
+        $count = $this->service->syncFromTodosPage($this->collectiveFolder, $todosContent);
+
+        $this->assertSame(1, $count);
     }
 
     public function testUnchecksSourcePageWhenCheckboxUntickedInTodosPage(): void
@@ -124,6 +156,7 @@ class TodosReverseSyncServiceTest extends TestCase
         $this->rootFolder->method('getById')->willReturn([$file]);
 
         $file->expects($this->never())->method('putContent');
+        $this->textResetter->expects($this->never())->method('resetForFile');
 
         $count = $this->service->syncFromTodosPage($this->collectiveFolder, $todosContent);
 
