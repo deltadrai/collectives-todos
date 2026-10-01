@@ -119,9 +119,10 @@ class TodosPageGeneratorTest extends TestCase
         
         $content = $this->generator->generateContent($this->collectiveFolder);
         
-        // Duplicate titles should have page_id appended
-        $this->assertStringContainsString('## Notes (page-1)', $content);
-        $this->assertStringContainsString('## Notes (page-2)', $content);
+        // Duplicate titles get the page_id appended; without a resolvable URL
+        // the heading is sanitized, which strips the parentheses
+        $this->assertStringContainsString('## Notes page-1', $content);
+        $this->assertStringContainsString('## Notes page-2', $content);
     }
 
     public function testGetFilename(): void

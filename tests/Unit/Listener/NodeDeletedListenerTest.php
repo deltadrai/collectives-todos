@@ -10,7 +10,7 @@ use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCP\Files\Events\Node\NodeDeletedEvent;
 use OCP\Files\File;
 use OCP\Files\Folder;
-use OCP\Files\Storage;
+use OCP\Files\Storage\IStorage;
 use OCA\Collectives\Mount\CollectiveStorage;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -37,7 +37,7 @@ class NodeDeletedListenerTest extends TestCase
 
     public function testHandleIgnoresNonFileNodes(): void
     {
-        $storage = $this->createMock(Storage::class);
+        $storage = $this->createMock(IStorage::class);
         $node = $this->createMock(\OCP\Files\Node::class);
         $node->method('getStorage')->willReturn($storage);
 
@@ -66,7 +66,7 @@ class NodeDeletedListenerTest extends TestCase
 
     public function testHandleIgnoresNonCollectiveStorage(): void
     {
-        $storage = $this->createMock(Storage::class);
+        $storage = $this->createMock(IStorage::class);
         $storage->method('instanceOfStorage')->willReturn(false);
 
         $node = $this->createMock(File::class);

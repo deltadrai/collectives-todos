@@ -9,6 +9,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Bidirectional checkbox sync: ticking or unticking a checkbox on the Todos page now also updates
+  the checkbox on the source page it was aggregated from. Sections of the Todos page are resolved to
+  source pages by the page file id in the heading link URL (title as fallback), and checkboxes are
+  matched by text within a section. Only checked-state changes are synced; text edits on the Todos
+  page are discarded with the next regeneration. If the cached line number of a checkbox has
+  drifted, the checkbox is located by a unique text match, otherwise the change is skipped and a
+  warning is logged.
 - Page headings on the Todos page are now links to the corresponding page, in the same URL format
   the Collectives app itself uses (`/apps/collectives/<collectives>/<slug>-<pageId>`, with a
   `?fileId=` fallback for pages without a slug). If the URL cannot be resolved, the plain heading is

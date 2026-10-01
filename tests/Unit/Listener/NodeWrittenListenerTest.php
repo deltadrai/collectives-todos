@@ -8,10 +8,11 @@ use OCA\CollectiveTodos\Listener\NodeWrittenListener;
 use OCA\CollectiveTodos\Service\CheckboxParser;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
+use OCA\CollectiveTodos\Service\TodosReverseSyncService;
 use OCP\Files\Events\Node\NodeWrittenEvent;
 use OCP\Files\File;
 use OCP\Files\Folder;
-use OCP\Files\Storage;
+use OCP\Files\Storage\IStorage;
 use OCA\Collectives\Mount\CollectiveStorage;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -22,6 +23,7 @@ class NodeWrittenListenerTest extends TestCase
     private CheckboxParser $parser;
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
+    private TodosReverseSyncService $reverseSync;
     private LoggerInterface $logger;
 
     protected function setUp(): void
@@ -29,19 +31,21 @@ class NodeWrittenListenerTest extends TestCase
         $this->parser = $this->createMock(CheckboxParser::class);
         $this->aggregator = $this->createMock(CheckboxAggregator::class);
         $this->generator = $this->createMock(TodosPageGenerator::class);
+        $this->reverseSync = $this->createMock(TodosReverseSyncService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->listener = new NodeWrittenListener(
             $this->parser,
             $this->aggregator,
             $this->generator,
+            $this->reverseSync,
             $this->logger
         );
     }
 
     public function testHandleIgnoresNonFileNodes(): void
     {
-        $storage = $this->createMock(Storage::class);
+        $storage = $this->createMock(IStorage::class);
         $node = $this->createMock(\OCP\Files\Node::class);
         $node->method('getStorage')->willReturn($storage);
 
@@ -71,7 +75,7 @@ class NodeWrittenListenerTest extends TestCase
 
     public function testHandleIgnoresNonCollectiveStorage(): void
     {
-        $storage = $this->createMock(Storage::class);
+        $storage = $this->createMock(IStorage::class);
         $storage->method('instanceOfStorage')->willReturn(false);
 
         $node = $this->createMock(File::class);
@@ -86,8 +90,10 @@ class NodeWrittenListenerTest extends TestCase
         $this->listener->handle($event);
     }
 
-    public function testHandleIgnoresOwnTodosPage(): void
+    public function testHandleRoutesTodosPageWriteToReverseSync(): void
     {
+        $collectiveFolder = $this->createMock(Folder::class);
+
         $storage = $this->createMock(CollectiveStorage::class);
         $storage->method('instanceOfStorage')->willReturn(true);
 
@@ -95,11 +101,21 @@ class NodeWrittenListenerTest extends TestCase
         $node->method('getStorage')->willReturn($storage);
         $node->method('getMimeType')->willReturn('text/markdown');
         $node->method('getName')->willReturn(TodosPageGenerator::TODOS_PAGE_FILENAME);
+        $node->method('getContent')->willReturn('- [x] Test task');
 
         $event = $this->createMock(NodeWrittenEvent::class);
         $event->method('getNode')->willReturn($node);
 
+        $this->aggregator->method('getCollectiveFolderFromNode')->willReturn($collectiveFolder);
+
+        $this->reverseSync->expects($this->once())
+            ->method('syncFromTodosPage')
+            ->with($collectiveFolder, '- [x] Test task');
+
+        // The Todos page itself must not be re-aggregated or regenerated here;
+        // the source page writes triggered by the sync do that
         $this->parser->expects($this->never())->method('parse');
+        $this->aggregator->expects($this->never())->method('updatePageCheckboxes');
         $this->generator->expects($this->never())->method('regenerateTodosPage');
 
         $this->listener->handle($event);

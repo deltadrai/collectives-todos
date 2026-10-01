@@ -9,6 +9,8 @@ A Nextcloud app that aggregates markdown checkboxes across all pages in a Collec
 - Aggregates them into a root "Todos.md" page
 - Each page heading links to the page itself (Collectives URL format)
 - Auto-updates when any page is saved, deleted, or renamed
+- Bidirectional: ticking a checkbox on the Todos page also updates the checkbox on the source page
+  it came from (matched by page link and checkbox text)
 - JSON cache for efficient updates
 - CLI command for initializing existing collectives
 
@@ -34,6 +36,8 @@ Once installed and enabled, the app works automatically:
 1. Create or edit any page in a Collectives with markdown checkboxes
 2. The "Todos" page in the collectives root is automatically updated on save
 3. All checkboxes from all pages are aggregated in one place
+4. Ticking a checkbox on the "Todos" page updates the checkbox on its source page; the "Todos" page
+   is then regenerated from the updated pages
 
 ## CLI Commands
 
@@ -68,6 +72,9 @@ To prevent cache files from becoming too large, you can set a limit:
 - v1: Page titles are derived from filenames (not Collectives's database titles)
 - v1: --all CLI option requires manual collectives ID specification
 - v1: Assumes collectives-level permissions (not per-page permissions)
+- v2: Checkboxes on the Todos page are matched back to source pages by text; two identical checkbox
+  texts on one page are ambiguous (the first one is synced)
+- v2: Text edits made on the Todos page are discarded with the next regeneration
 
 ## Support
 

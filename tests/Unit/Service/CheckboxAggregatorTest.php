@@ -93,7 +93,7 @@ class CheckboxAggregatorTest extends TestCase
 
     public function testGetCollectiveFolderFromNodeThrowsOnNonCollectiveStorage(): void
     {
-        $storage = $this->createMock(\OCP\Files\Storage::class);
+        $storage = $this->createMock(\OCP\Files\Storage\IStorage::class);
         $node = $this->createMock(File::class);
 
         $storage->method('instanceOfStorage')->willReturn(false);

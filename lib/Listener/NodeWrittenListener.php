@@ -12,6 +12,7 @@ use OCA\Collectives\Mount\CollectiveStorage;
 use OCA\CollectiveTodos\Service\CheckboxParser;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
+use OCA\CollectiveTodos\Service\TodosReverseSyncService;
 use Psr\Log\LoggerInterface;
 
 /** @template-implements IEventListener<NodeWrittenEvent> */
@@ -20,17 +21,20 @@ class NodeWrittenListener implements IEventListener
     private CheckboxParser $parser;
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
+    private TodosReverseSyncService $reverseSync;
     private LoggerInterface $logger;
 
     public function __construct(
         CheckboxParser $parser,
         CheckboxAggregator $aggregator,
         TodosPageGenerator $generator,
+        TodosReverseSyncService $reverseSync,
         LoggerInterface $logger
     ) {
         $this->parser = $parser;
         $this->aggregator = $aggregator;
         $this->generator = $generator;
+        $this->reverseSync = $reverseSync;
         $this->logger = $logger;
     }
 
@@ -46,16 +50,21 @@ class NodeWrittenListener implements IEventListener
 
         $node = $event->getNode();
 
-        // Filter: only Collective markdown files, but never our own Todos page
-        // (writing it triggers another NodeWrittenEvent -> infinite loop)
+        // Filter: only Collective markdown files
         if (!($node instanceof File)
             || $node->getMimeType() !== 'text/markdown'
-            || $node->getName() === TodosPageGenerator::TODOS_PAGE_FILENAME
             || !$node->getStorage()->instanceOfStorage(CollectiveStorage::class)) {
             return;
         }
 
         try {
+            // Writes to the Todos page itself are reverse-synced to the source
+            // pages instead of being aggregated (aggregating them would loop)
+            if ($node->getName() === TodosPageGenerator::TODOS_PAGE_FILENAME) {
+                $this->syncTodosPageToSources($node);
+                return;
+            }
+
             $collectiveFolder = $this->aggregator->getCollectiveFolderFromNode($node);
 
             $checkboxes = $this->parser->parse($node->getContent());
@@ -69,5 +78,17 @@ class NodeWrittenListener implements IEventListener
                 'exception' => $e,
             ]);
         }
+    }
+
+    /**
+     * Apply checkbox changes made on the Todos page to the source pages.
+     * The source page writes then take the regular aggregation path, which
+     * regenerates the Todos page once - that regeneration produces no
+     * further reverse-sync changes, so the cycle terminates.
+     */
+    private function syncTodosPageToSources(File $node): void
+    {
+        $collectiveFolder = $this->aggregator->getCollectiveFolderFromNode($node);
+        $this->reverseSync->syncFromTodosPage($collectiveFolder, $node->getContent());
     }
 }

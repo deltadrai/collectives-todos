@@ -33,8 +33,10 @@ class PageLinkBuilderTest extends TestCase
 
     private function mockPage(?string $slug): Page
     {
-        $page = $this->createMock(Page::class);
-        $page->method('getSlug')->willReturn($slug);
+        // Page uses Entity magic getters (__call), which PHPUnit cannot
+        // configure on mocks, so use a real entity and set the slug directly.
+        $page = new Page();
+        $page->setSlug($slug);
         return $page;
     }
 
