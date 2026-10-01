@@ -1,0 +1,160 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\CollectiveTodos\Service;
+
+use OCP\Files\Folder;
+
+class TodosPageGenerator
+{
+    public const TODOS_PAGE_FILENAME = 'Todos.md';
+
+    private CheckboxAggregator $aggregator;
+    private PageLinkBuilder $linkBuilder;
+    private TextDocumentResetter $textResetter;
+
+    public function __construct(
+        CheckboxAggregator $aggregator,
+        PageLinkBuilder $linkBuilder,
+        TextDocumentResetter $textResetter
+    ) {
+        $this->aggregator = $aggregator;
+        $this->linkBuilder = $linkBuilder;
+        $this->textResetter = $textResetter;
+    }
+
+    /**
+     * Generate and save the Todos page for a collectives.
+     *
+     * @param Folder $collectiveFolder The root folder of the collectives
+     */
+    public function regenerateTodosPage(Folder $collectiveFolder): void
+    {
+        $content = $this->generateContent($collectiveFolder);
+        $this->saveTodosPage($collectiveFolder, $content);
+    }
+
+    /**
+     * Generate the markdown content for the Todos page.
+     *
+     * @param Folder $collectiveFolder The root folder of the collectives
+     */
+    public function generateContent(Folder $collectiveFolder): string
+    {
+        $pages = $this->aggregator->getAllCheckboxes($collectiveFolder);
+        $collectiveId = $this->aggregator->getCollectiveId($collectiveFolder);
+        $updated = (new \DateTime())->format('Y-m-d H:i:s T');
+
+        $lines = [];
+        $lines[] = '# Todos';
+        $lines[] = '';
+        $lines[] = '*Auto-generated from all pages in this collectives. Last updated: ' . $updated . '* ';
+        $lines[] = '';
+
+        $hasCheckboxes = false;
+
+        foreach ($pages as $pageId => $pageData) {
+            $checkboxes = $pageData['checkboxes'];
+            if (empty($checkboxes)) {
+                continue;
+            }
+
+            $hasCheckboxes = true;
+            $header = $pageData['title'];
+            if ($this->hasDuplicateTitles($pages, $header)) {
+                $header .= ' (' . $pageId . ')';
+            }
+            $lines[] = '## ' . $this->formatHeader($header, $collectiveId, (string)$pageId, $pageData['title']);
+            $lines[] = '';
+
+            foreach ($checkboxes as $checkbox) {
+                $checked = $checkbox['checked'] ? 'x' : ' ';
+                $lines[] = '- [' . $checked . '] ' . $checkbox['text'];
+            }
+
+            $lines[] = '';
+        }
+
+        if (!$hasCheckboxes) {
+            $lines[] = 'No tasks found in this collectives.';
+            $lines[] = '';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Get the filename of the Todos page.
+     */
+    public function getFilename(): string
+    {
+        return self::TODOS_PAGE_FILENAME;
+    }
+
+    /**
+     * Check if multiple pages have the same title.
+     */
+    private function hasDuplicateTitles(array $pages, string $title): bool
+    {
+        $count = 0;
+        foreach ($pages as $pageData) {
+            if ($pageData['title'] === $title) {
+                $count++;
+                if ($count >= 2) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Format a page header, linking to the page if its URL can be resolved.
+     */
+    private function formatHeader(string $header, ?int $collectiveId, string $pageId, string $title): string
+    {
+        if ($collectiveId !== null) {
+            $url = $this->linkBuilder->getPageUrl($collectiveId, $pageId, $title);
+            if ($url !== null) {
+                return '[' . $this->escapeLinkText($header) . '](' . $url . ')';
+            }
+        }
+
+        return $this->sanitizeHeader($header);
+    }
+
+    /**
+     * Escape a string for use as markdown link text.
+     */
+    private function escapeLinkText(string $title): string
+    {
+        return str_replace(['[', ']'], ['\\[', '\\]'], $title);
+    }
+
+    /**
+     * Sanitize a string for use as a markdown header.
+     */
+    private function sanitizeHeader(string $title): string
+    {
+        return str_replace(['#', '[', ']', '(', ')', '*', '_', '~'], '', $title);
+    }
+
+    /**
+     * Save the Todos page content to the collectives folder and reset the
+     * Text editor state of the Todos page (its content changed externally).
+     */
+    private function saveTodosPage(Folder $collectiveFolder, string $content): void
+    {
+        if ($collectiveFolder->nodeExists(self::TODOS_PAGE_FILENAME)) {
+            $todosFile = $collectiveFolder->get(self::TODOS_PAGE_FILENAME);
+            if ($todosFile instanceof \OCP\Files\File) {
+                $todosFile->putContent($content);
+                $this->textResetter->resetForFile((int)$todosFile->getId());
+                return;
+            }
+        }
+        $todosFile = $collectiveFolder->newFile(self::TODOS_PAGE_FILENAME, $content);
+        $this->textResetter->resetForFile((int)$todosFile->getId());
+    }
+}
