@@ -596,4 +596,45 @@ class SettingsControllerTest extends TestCase
 		);
 		$this->assertSame([6], $enabledCollectives);
 	}
+
+	public function testToggleDefaultEnableClearsOptOutsAndEnablesAllCollectives(): void
+	{
+		$this->enabled = false;
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'toggle_default_enabled' => '1',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+			$this->collective(7),
+		]);
+
+		$cleared = [];
+		$this->settings->method('clearOverride')->willReturnCallback(
+			static function (int $collectiveId, string $key) use (&$cleared): void {
+				$cleared[] = [$collectiveId, $key];
+			}
+		);
+		$enabledCollectives = [];
+		$this->applier->method('enableTodosPage')->willReturnCallback(
+			static function (int $collectiveId) use (&$enabledCollectives): ?string {
+				$enabledCollectives[] = $collectiveId;
+				return null;
+			}
+		);
+		$this->applier->expects($this->never())->method('disableTodosPage');
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(RedirectResponse::class, $response);
+		// Every collective is reset to enabled, even manually disabled
+		// ones: enabling globally must not leave opt-outs behind
+		$this->assertSame([
+			[6, SettingsService::KEY_ENABLED],
+			[7, SettingsService::KEY_ENABLED],
+		], $cleared);
+		$this->assertSame([6, 7], $enabledCollectives);
+	}
 }

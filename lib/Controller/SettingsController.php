@@ -158,8 +158,9 @@ class SettingsController extends Controller
 		}
 
 		// Enable/Disable button of the defaults section: flips the
-		// instance-wide default. Collectives with their own enabled
-		// override keep their state; the others get the side effects.
+		// instance-wide default. Enabling resets every collective to
+		// enabled (manual opt-outs are cleared, the user opted into the
+		// app as a whole); disabling keeps per-collective opt-outs.
 		$toggleDefault = (string)$this->request->getParam('toggle_default_enabled', '');
 		if ($toggleDefault !== '') {
 			$newState = $this->settings->isEnabled(null)
@@ -167,12 +168,15 @@ class SettingsController extends Controller
 				: SettingsService::VALUE_ENABLED;
 			$this->settings->setDefault(SettingsService::KEY_ENABLED, $newState);
 			foreach ($collectiveIds as $collectiveId) {
-				if ($this->settings->getOverride($collectiveId, SettingsService::KEY_ENABLED) !== null) {
-					continue;
+				if ($newState === SettingsService::VALUE_ENABLED) {
+					$this->settings->clearOverride($collectiveId, SettingsService::KEY_ENABLED);
+					$error = $this->applier->enableTodosPage($collectiveId);
+				} else {
+					if ($this->settings->getOverride($collectiveId, SettingsService::KEY_ENABLED) !== null) {
+						continue;
+					}
+					$error = $this->applier->disableTodosPage($collectiveId);
 				}
-				$error = $newState === SettingsService::VALUE_ENABLED
-					? $this->applier->enableTodosPage($collectiveId)
-					: $this->applier->disableTodosPage($collectiveId);
 				if ($error !== null) {
 					$applyErrors[] = 'Collective ' . $collectiveId . ': ' . $error;
 				}

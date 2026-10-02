@@ -83,7 +83,7 @@
                 <button type="submit" name="toggle_default_enabled" value="1"
                         class="button primary"><?php p('Enable'); ?></button>
             <?php endif; ?>
-            <p class="settings-hint"><?php p('Collectives with their own Enable/Disable override keep their state.'); ?></p>
+            <p class="settings-hint"><?php p('Enabling resets every collective to enabled. Disabling a single collective is the manual choice in the table below.'); ?></p>
         </div>
 
         <h3><?php p('Per-collective overrides'); ?></h3>

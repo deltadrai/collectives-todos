@@ -83,12 +83,14 @@ default and can be overridden per collective (an empty field uses the default):
   per-collective table one per collective. The global default applies to every collective; the
   per-collective button only opts a collective out (Disable) or returns it to the default (Enable
   clears the override) - a collective cannot be enabled while the default is disabled, the settings
-  page renders such Enable buttons as inactive. Disabling deletes the affected Todos page and its
-  page row (hard delete, not trash: the page is fully derived from the source pages, so a restored
-  copy would only conflict with the page regenerated on re-enable) and stops generating or
-  reverse-syncing it; the checkbox cache keeps being updated, so enabling regenerates a consistent
-  page immediately. Collectives without any checkboxes still get a Todos page showing "No tasks
-  found in this collectives."
+  page renders such Enable buttons as inactive. Enabling globally resets every collective to enabled
+  (it clears all per-collective opt-outs and regenerates their Todos pages), because opting into the
+  app means wanting it everywhere; disabling single collectives stays the manual choice. Disabling
+  deletes the affected Todos page and its page row (hard delete, not trash: the page is fully
+  derived from the source pages, so a restored copy would only conflict with the page regenerated on
+  re-enable) and stops generating or reverse-syncing it; the checkbox cache keeps being updated, so
+  enabling regenerates a consistent page immediately. Collectives without any checkboxes still get a
+  Todos page showing "No tasks found in this collectives."
 
 ## Data Storage
 

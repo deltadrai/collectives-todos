@@ -14,8 +14,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   checkbox cache keeps being maintained, so enabling regenerates a consistent page immediately.
   Enabled is the default.
 - Global Enable/Disable button in the settings page's Defaults section: flips the instance-wide
-  default for all collectives without their own enabled override (an override keeps winning over the
-  default, like for every other config item).
+  default. Enabling resets every collective to enabled - it clears all per-collective enabled
+  opt-outs and regenerates their Todos pages, since opting into the app means wanting it everywhere;
+  disabling single collectives stays the manual choice. Disabling globally deletes the Todos page of
+  every collective that is not already opted out.
 - The per-collective Enable button clears the collective's enabled override instead of writing a
   sticky enabled value: a sticky override would shield the collective from the global default toggle
   forever, so a global disable reliably deletes every Todos page of collectives that were not
