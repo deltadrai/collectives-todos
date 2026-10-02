@@ -129,10 +129,44 @@ class PageEmojiServiceTest extends TestCase
 		$this->service->enforceEmoji($this->collectiveFolder, 8);
 	}
 
-	public function testSkipsWhenPageRowMissing(): void
+	public function testCreatesPageRowWhenMissing(): void
 	{
-		$this->collectiveFolder->method('get')->willReturn($this->createMock(File::class));
+		// A freshly (re)created Todos page has no collectives_pages row
+		// yet - Collectives creates it lazily later, so the emoji must be
+		// written with the row (updateOrInsert merges by file id)
+		$this->emoji = '📋';
+		$this->collectiveFolder->method('get')->willReturnCallback(function (string $name) {
+			if ($name !== 'Todos.md') {
+				throw new NotFoundException('not found: ' . $name);
+			}
+			$file = $this->createMock(File::class);
+			$file->method('getId')->willReturn(40);
+			return $file;
+		});
 		$this->pageMapper->method('findByFileId')->willReturn(null);
+		$this->pageMapper->expects($this->once())->method('updateOrInsert')
+			->willReturnCallback(function (Page $page): Page {
+				$this->assertSame(40, $page->getFileId());
+				$this->assertSame('📋', $page->getEmoji());
+				return $page;
+			});
+
+		$this->service->enforceEmoji($this->collectiveFolder, 8);
+	}
+
+	public function testDoesNotCreateRowWhenNoEmojiConfigured(): void
+	{
+		$this->emoji = '';
+		$this->collectiveFolder->method('get')->willReturnCallback(function (string $name) {
+			if ($name !== 'Todos.md') {
+				throw new NotFoundException('not found: ' . $name);
+			}
+			$file = $this->createMock(File::class);
+			$file->method('getId')->willReturn(40);
+			return $file;
+		});
+		$this->pageMapper->method('findByFileId')->willReturn(null);
+		$this->pageMapper->expects($this->never())->method('updateOrInsert');
 		$this->pageMapper->expects($this->never())->method('update');
 
 		$this->service->enforceEmoji($this->collectiveFolder, 8);

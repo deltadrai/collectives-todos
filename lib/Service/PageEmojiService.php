@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\CollectiveTodos\Service;
 
+use OCA\Collectives\Db\Page;
 use OCA\Collectives\Db\PageMapper;
 use OCP\Files\Folder;
 
@@ -26,7 +27,10 @@ class PageEmojiService
 
 	/**
 	 * Write the configured Todos page emoji to the page's collectives_pages
-	 * row. Silently skipped when the Todos page or its row is missing.
+	 * row. A freshly (re)created Todos page has no row yet - Collectives
+	 * creates it lazily - so the row is created with the emoji, the same
+	 * way Collectives' own code inserts page rows. Skipped when the Todos
+	 * page is missing or no emoji is configured.
 	 */
 	public function enforceEmoji(Folder $collectiveFolder, ?int $collectiveId): void
 	{
@@ -41,11 +45,17 @@ class PageEmojiService
 
 		$page = $this->pageMapper->findByFileId((int)$todosFile->getId());
 		if ($page === null) {
+			if ($emoji === '') {
+				return;
+			}
+			$page = new Page();
+			$page->setFileId((int)$todosFile->getId());
+			$page->setEmoji($emoji);
+			$this->pageMapper->updateOrInsert($page);
 			return;
 		}
 
-		$current = $page->getEmoji() ?? '';
-		if ($current === $emoji) {
+		if (($page->getEmoji() ?? '') === $emoji) {
 			return;
 		}
 
