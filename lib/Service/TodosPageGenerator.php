@@ -13,15 +13,18 @@ class TodosPageGenerator
     private CheckboxAggregator $aggregator;
     private PageLinkBuilder $linkBuilder;
     private TextDocumentResetter $textResetter;
+    private SettingsService $settings;
 
     public function __construct(
         CheckboxAggregator $aggregator,
         PageLinkBuilder $linkBuilder,
-        TextDocumentResetter $textResetter
+        TextDocumentResetter $textResetter,
+        SettingsService $settings
     ) {
         $this->aggregator = $aggregator;
         $this->linkBuilder = $linkBuilder;
         $this->textResetter = $textResetter;
+        $this->settings = $settings;
     }
 
     /**
@@ -31,8 +34,10 @@ class TodosPageGenerator
      */
     public function regenerateTodosPage(Folder $collectiveFolder): void
     {
-        $content = $this->generateContent($collectiveFolder);
-        $this->saveTodosPage($collectiveFolder, $content);
+        $collectiveId = $this->aggregator->getCollectiveId($collectiveFolder);
+        $filename = $this->settings->resolveTodosPageFilename($collectiveId);
+        $content = $this->generateContent($collectiveFolder, $filename);
+        $this->saveTodosPage($collectiveFolder, $content, $filename);
     }
 
     /**
@@ -40,14 +45,14 @@ class TodosPageGenerator
      *
      * @param Folder $collectiveFolder The root folder of the collectives
      */
-    public function generateContent(Folder $collectiveFolder): string
+    public function generateContent(Folder $collectiveFolder, string $todosFilename): string
     {
         $pages = $this->aggregator->getAllCheckboxes($collectiveFolder);
         $collectiveId = $this->aggregator->getCollectiveId($collectiveFolder);
         $updated = (new \DateTime())->format('Y-m-d H:i:s T');
 
         $lines = [];
-        $lines[] = '# Todos';
+        $lines[] = '# ' . pathinfo($todosFilename, PATHINFO_FILENAME);
         $lines[] = '';
         $lines[] = '*Auto-generated from all pages in this collectives. Last updated: ' . $updated . '* ';
         $lines[] = '';
@@ -82,14 +87,6 @@ class TodosPageGenerator
         }
 
         return implode("\n", $lines);
-    }
-
-    /**
-     * Get the filename of the Todos page.
-     */
-    public function getFilename(): string
-    {
-        return self::TODOS_PAGE_FILENAME;
     }
 
     /**
@@ -149,10 +146,10 @@ class TodosPageGenerator
      * rewriting it would change the file's etag behind open editor sessions
      * (error dialogs, conflict diffs), even though no todo changed.
      */
-    private function saveTodosPage(Folder $collectiveFolder, string $content): void
+    private function saveTodosPage(Folder $collectiveFolder, string $content, string $todosFilename): void
     {
-        if ($collectiveFolder->nodeExists(self::TODOS_PAGE_FILENAME)) {
-            $todosFile = $collectiveFolder->get(self::TODOS_PAGE_FILENAME);
+        if ($collectiveFolder->nodeExists($todosFilename)) {
+            $todosFile = $collectiveFolder->get($todosFilename);
             if ($todosFile instanceof \OCP\Files\File) {
                 if ($this->isUnchangedExceptTimestamp((string)$todosFile->getContent(), $content)) {
                     return;
@@ -162,7 +159,7 @@ class TodosPageGenerator
                 return;
             }
         }
-        $todosFile = $collectiveFolder->newFile(self::TODOS_PAGE_FILENAME, $content);
+        $todosFile = $collectiveFolder->newFile($todosFilename, $content);
         $this->textResetter->resetForFile((int)$todosFile->getId());
     }
 

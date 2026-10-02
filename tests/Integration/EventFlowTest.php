@@ -42,6 +42,9 @@ class EventFlowTest extends TestCase
     {
         $rootFolder = $this->createMock(IRootFolder::class);
         $config = $this->createMock(IConfig::class);
+        $config->method('getAppValue')->willReturnCallback(
+            static fn (string $app, string $key, string $default = '') => $default
+        );
         $collectiveMapper = $this->getMockBuilder(\OCA\Collectives\Db\CollectiveMapper::class)
             ->disableOriginalConstructor()->getMock();
         $pageMapper = $this->getMockBuilder(\OCA\Collectives\Db\PageMapper::class)
@@ -50,10 +53,12 @@ class EventFlowTest extends TestCase
 
         $this->parser = new CheckboxParser();
         $this->aggregator = new CheckboxAggregator($rootFolder, $config);
+        $settings = new \OCA\CollectiveTodos\Service\SettingsService($config);
         $this->generator = new TodosPageGenerator(
             $this->aggregator,
             new PageLinkBuilder($collectiveMapper, $pageMapper),
-            new TextDocumentResetter($logger)
+            new TextDocumentResetter($logger),
+            $settings
         );
     }
 
@@ -82,7 +87,7 @@ class EventFlowTest extends TestCase
         $folder->method('getStorage')->willReturn($this->createMock(IStorage::class));
         $folder->method('getPath')->willReturn('/admin/files/collectives');
 
-        $content = $this->generator->generateContent($folder);
+        $content = $this->generator->generateContent($folder, 'Todos.md');
 
         $this->assertStringContainsString('# Todos', $content);
     }
@@ -141,6 +146,9 @@ class EventFlowTest extends TestCase
     {
         $logger = $this->createMock(LoggerInterface::class);
         $config = $this->createMock(IConfig::class);
+        $config->method('getAppValue')->willReturnCallback(
+            static fn (string $app, string $key, string $default = '') => $default
+        );
         $config->method('getSystemValueString')->willReturn('testinst');
 
         $storage = $this->createCollectiveStorage();
@@ -171,7 +179,8 @@ class EventFlowTest extends TestCase
         $generator = new TodosPageGenerator(
             $aggregator,
             new PageLinkBuilder($collectiveMapper, $pageMapper),
-            new TextDocumentResetter($logger)
+            new TextDocumentResetter($logger),
+            new \OCA\CollectiveTodos\Service\SettingsService($config)
         );
         $textResetter = new TextDocumentResetter($logger);
         $reverseSync = new TodosReverseSyncService($parser, $aggregator, $this->rootFolder, $textResetter, $logger);

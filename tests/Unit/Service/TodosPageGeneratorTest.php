@@ -7,6 +7,7 @@ namespace OCA\CollectiveTodos\Tests\Unit\Service;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
 use OCA\CollectiveTodos\Service\PageLinkBuilder;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TextDocumentResetter;
 use OCP\Files\File;
 use OCP\Files\Folder;
@@ -17,26 +18,48 @@ class TodosPageGeneratorTest extends TestCase
     private TodosPageGenerator $generator;
     private CheckboxAggregator $aggregator;
     private PageLinkBuilder $linkBuilder;
+    private SettingsService $settings;
     private TextDocumentResetter $textResetter;
     private Folder $collectiveFolder;
+    private string $todosFilename = 'Todos.md';
 
     protected function setUp(): void
     {
         $this->aggregator = $this->createMock(CheckboxAggregator::class);
         $this->linkBuilder = $this->createMock(PageLinkBuilder::class);
+        $this->settings = $this->createMock(SettingsService::class);
         $this->textResetter = $this->createMock(TextDocumentResetter::class);
         $this->collectiveFolder = $this->createMock(Folder::class);
-        $this->generator = new TodosPageGenerator($this->aggregator, $this->linkBuilder, $this->textResetter);
+
+        $this->settings->method('resolveTodosPageFilename')
+            ->willReturnCallback(fn () => $this->todosFilename);
+
+        $this->generator = new TodosPageGenerator(
+            $this->aggregator,
+            $this->linkBuilder,
+            $this->textResetter,
+            $this->settings
+        );
     }
 
     public function testGenerateContentWithNoCheckboxes(): void
     {
         $this->aggregator->method('getAllCheckboxes')->willReturn([]);
-        
-        $content = $this->generator->generateContent($this->collectiveFolder);
-        
+
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
+
         $this->assertStringContainsString('# Todos', $content);
         $this->assertStringContainsString('No tasks found', $content);
+    }
+
+    public function testHeadingUsesConfiguredPageName(): void
+    {
+        $this->todosFilename = 'Aufgaben.md';
+        $this->aggregator->method('getAllCheckboxes')->willReturn([]);
+
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
+
+        $this->assertStringContainsString('# Aufgaben', $content);
     }
 
     public function testGenerateContentWithCheckboxes(): void
@@ -52,11 +75,11 @@ class TodosPageGeneratorTest extends TestCase
                 ],
             ],
         ];
-        
+
         $this->aggregator->method('getAllCheckboxes')->willReturn($pages);
-        
-        $content = $this->generator->generateContent($this->collectiveFolder);
-        
+
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
+
         $this->assertStringContainsString('# Todos', $content);
         $this->assertStringContainsString('## Meeting Notes', $content);
         $this->assertStringContainsString('- [ ] Prepare agenda', $content);
@@ -83,11 +106,11 @@ class TodosPageGeneratorTest extends TestCase
                 ],
             ],
         ];
-        
+
         $this->aggregator->method('getAllCheckboxes')->willReturn($pages);
-        
-        $content = $this->generator->generateContent($this->collectiveFolder);
-        
+
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
+
         $this->assertStringContainsString('## Page One', $content);
         $this->assertStringContainsString('## Page Two', $content);
         $this->assertStringContainsString('- [ ] Task 1', $content);
@@ -114,20 +137,15 @@ class TodosPageGeneratorTest extends TestCase
                 ],
             ],
         ];
-        
+
         $this->aggregator->method('getAllCheckboxes')->willReturn($pages);
-        
-        $content = $this->generator->generateContent($this->collectiveFolder);
-        
+
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
+
         // Duplicate titles get the page_id appended; without a resolvable URL
         // the heading is sanitized, which strips the parentheses
         $this->assertStringContainsString('## Notes page-1', $content);
         $this->assertStringContainsString('## Notes page-2', $content);
-    }
-
-    public function testGetFilename(): void
-    {
-        $this->assertSame('Todos.md', $this->generator->getFilename());
     }
 
     public function testGenerateContentWithLinkedHeading(): void
@@ -149,7 +167,7 @@ class TodosPageGeneratorTest extends TestCase
             ->with(8, '4127', 'Meeting Notes')
             ->willReturn('/apps/collectives/jf-protokolle-8/meeting-notes-4127');
 
-        $content = $this->generator->generateContent($this->collectiveFolder);
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
 
         $this->assertStringContainsString(
             '## [Meeting Notes](/apps/collectives/jf-protokolle-8/meeting-notes-4127)',
@@ -174,7 +192,7 @@ class TodosPageGeneratorTest extends TestCase
         $this->aggregator->method('getCollectiveId')->willReturn(8);
         $this->linkBuilder->method('getPageUrl')->willReturn(null);
 
-        $content = $this->generator->generateContent($this->collectiveFolder);
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
 
         $this->assertStringContainsString('## Meeting Notes', $content);
     }
@@ -197,7 +215,7 @@ class TodosPageGeneratorTest extends TestCase
         $this->linkBuilder->method('getPageUrl')
             ->willReturn('/apps/collectives/jf-protokolle-8/notes-draft-4127');
 
-        $content = $this->generator->generateContent($this->collectiveFolder);
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
 
         $this->assertStringContainsString(
             '## [Notes \[draft\]](/apps/collectives/jf-protokolle-8/notes-draft-4127)',
@@ -232,7 +250,7 @@ class TodosPageGeneratorTest extends TestCase
             static fn (int $collectiveId, string $pageId, string $title) => '/apps/collectives/jf-protokolle-8/notes-' . $pageId
         );
 
-        $content = $this->generator->generateContent($this->collectiveFolder);
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
 
         $this->assertStringContainsString('## [Notes (page-1)](/apps/collectives/jf-protokolle-8/notes-page-1)', $content);
         $this->assertStringContainsString('## [Notes (page-2)](/apps/collectives/jf-protokolle-8/notes-page-2)', $content);
@@ -252,6 +270,32 @@ class TodosPageGeneratorTest extends TestCase
             ->with(4148);
 
         $this->generator->regenerateTodosPage($this->collectiveFolder);
+    }
+
+    public function testRegenerateCreatesTodosPageWithConfiguredFilename(): void
+    {
+        $this->todosFilename = 'Aufgaben.md';
+        $createdFile = $this->createMock(File::class);
+        $createdFile->method('getId')->willReturn(4149);
+
+        $this->cacheWithOneCheckbox(false);
+        $this->collectiveFolder->method('nodeExists')->willReturn(false);
+
+        $captured = '';
+        $this->collectiveFolder->expects($this->once())
+            ->method('newFile')
+            ->willReturnCallback(function (string $name, $content = '') use ($createdFile, &$captured) {
+                $captured = (string)$content;
+                $this->assertSame('Aufgaben.md', $name);
+                return $createdFile;
+            });
+        $this->textResetter->expects($this->once())
+            ->method('resetForFile')
+            ->with(4149);
+
+        $this->generator->regenerateTodosPage($this->collectiveFolder);
+
+        $this->assertStringContainsString('- [ ] Prepare agenda', $captured);
     }
 
     /**
@@ -340,7 +384,7 @@ class TodosPageGeneratorTest extends TestCase
             ->method('newFile')
             ->willReturnCallback(function (string $name, $content = '') use ($createdFile, &$captured) {
                 $captured = (string)$content;
-                $this->assertSame(TodosPageGenerator::TODOS_PAGE_FILENAME, $name);
+                $this->assertSame('Todos.md', $name);
                 return $createdFile;
             });
         $this->textResetter->expects($this->once())
