@@ -10,6 +10,7 @@ use OCP\Files\Events\Node\NodeDeletedEvent;
 use OCP\Files\File;
 use OCA\Collectives\Mount\CollectiveStorage;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use Psr\Log\LoggerInterface;
 
@@ -18,15 +19,18 @@ class NodeDeletedListener implements IEventListener
 {
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
+    private SettingsService $settings;
     private LoggerInterface $logger;
 
     public function __construct(
         CheckboxAggregator $aggregator,
         TodosPageGenerator $generator,
+        SettingsService $settings,
         LoggerInterface $logger
     ) {
         $this->aggregator = $aggregator;
         $this->generator = $generator;
+        $this->settings = $settings;
         $this->logger = $logger;
     }
 
@@ -45,13 +49,19 @@ class NodeDeletedListener implements IEventListener
         // Filter: only Collective markdown files, but never our own Todos page
         if (!($node instanceof File)
             || $node->getMimeType() !== 'text/markdown'
-            || $node->getName() === TodosPageGenerator::TODOS_PAGE_FILENAME
             || !$node->getStorage()->instanceOfStorage(CollectiveStorage::class)) {
             return;
         }
 
         try {
             $collectiveFolder = $this->aggregator->getCollectiveFolderFromNode($node);
+            $collectiveId = $this->aggregator->getCollectiveId($collectiveFolder);
+            $todosFilename = $this->settings->resolveTodosPageFilename($collectiveId);
+
+            if ($node->getName() === $todosFilename) {
+                return;
+            }
+
             $pageId = (string)$node->getId();
 
             $this->aggregator->removePage($collectiveFolder, $pageId);

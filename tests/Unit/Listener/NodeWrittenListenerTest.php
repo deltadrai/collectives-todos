@@ -8,6 +8,7 @@ use OCA\CollectiveTodos\Listener\NodeWrittenListener;
 use OCA\CollectiveTodos\Service\CheckboxParser;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TodosReverseSyncService;
 use OCP\Files\Events\Node\NodeWrittenEvent;
 use OCP\Files\File;
@@ -24,7 +25,9 @@ class NodeWrittenListenerTest extends TestCase
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
     private TodosReverseSyncService $reverseSync;
+    private SettingsService $settings;
     private LoggerInterface $logger;
+    private string $todosFilename = 'Todos.md';
 
     protected function setUp(): void
     {
@@ -32,13 +35,18 @@ class NodeWrittenListenerTest extends TestCase
         $this->aggregator = $this->createMock(CheckboxAggregator::class);
         $this->generator = $this->createMock(TodosPageGenerator::class);
         $this->reverseSync = $this->createMock(TodosReverseSyncService::class);
+        $this->settings = $this->createMock(SettingsService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+
+        $this->settings->method('resolveTodosPageFilename')
+            ->willReturnCallback(fn () => $this->todosFilename);
 
         $this->listener = new NodeWrittenListener(
             $this->parser,
             $this->aggregator,
             $this->generator,
             $this->reverseSync,
+            $this->settings,
             $this->logger
         );
     }
@@ -100,7 +108,7 @@ class NodeWrittenListenerTest extends TestCase
         $node = $this->createMock(File::class);
         $node->method('getStorage')->willReturn($storage);
         $node->method('getMimeType')->willReturn('text/markdown');
-        $node->method('getName')->willReturn(TodosPageGenerator::TODOS_PAGE_FILENAME);
+        $node->method('getName')->willReturn('Todos.md');
         $node->method('getContent')->willReturn('- [x] Test task');
 
         $event = $this->createMock(NodeWrittenEvent::class);
@@ -151,6 +159,66 @@ class NodeWrittenListenerTest extends TestCase
 
         $this->generator->expects($this->once())->method('regenerateTodosPage')
             ->with($collectiveFolder);
+
+        $this->listener->handle($event);
+    }
+
+    public function testCustomTodosPageNameTriggersReverseSync(): void
+    {
+        $this->todosFilename = 'Aufgaben.md';
+        $collectiveFolder = $this->createMock(Folder::class);
+
+        $storage = $this->createMock(CollectiveStorage::class);
+        $storage->method('instanceOfStorage')->willReturn(true);
+
+        $node = $this->createMock(File::class);
+        $node->method('getStorage')->willReturn($storage);
+        $node->method('getMimeType')->willReturn('text/markdown');
+        $node->method('getName')->willReturn('Aufgaben.md');
+        $node->method('getContent')->willReturn('- [x] Test task');
+
+        $event = $this->createMock(NodeWrittenEvent::class);
+        $event->method('getNode')->willReturn($node);
+
+        $this->aggregator->method('getCollectiveFolderFromNode')->willReturn($collectiveFolder);
+
+        $this->reverseSync->expects($this->once())
+            ->method('syncFromTodosPage')
+            ->with($collectiveFolder, '- [x] Test task');
+        $this->aggregator->expects($this->never())->method('updatePageCheckboxes');
+
+        $this->listener->handle($event);
+    }
+
+    public function testDefaultNameNotTreatedAsTodosPageWhenOverridden(): void
+    {
+        $this->todosFilename = 'Aufgaben.md';
+        $collectiveFolder = $this->createMock(Folder::class);
+
+        $storage = $this->createMock(CollectiveStorage::class);
+        $storage->method('instanceOfStorage')->willReturn(true);
+
+        $node = $this->createMock(File::class);
+        $node->method('getStorage')->willReturn($storage);
+        $node->method('getMimeType')->willReturn('text/markdown');
+        $node->method('getId')->willReturn(456);
+        $node->method('getName')->willReturn('Todos.md');
+        $node->method('getContent')->willReturn('- [ ] Test task');
+
+        $event = $this->createMock(NodeWrittenEvent::class);
+        $event->method('getNode')->willReturn($node);
+
+        $checkboxes = [
+            ['text' => 'Test task', 'checked' => false, 'line' => 1, 'raw' => '- [ ] Test task']
+        ];
+        $this->parser->method('parse')->willReturn($checkboxes);
+
+        $this->aggregator->method('getCollectiveFolderFromNode')->willReturn($collectiveFolder);
+        $this->aggregator->method('derivePageTitle')->willReturn('Todos');
+
+        $this->reverseSync->expects($this->never())->method('syncFromTodosPage');
+        $this->aggregator->expects($this->once())->method('updatePageCheckboxes')
+            ->with($collectiveFolder, '456', 'Todos', $checkboxes);
 
         $this->listener->handle($event);
     }

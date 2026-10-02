@@ -8,7 +8,6 @@ use OCP\Files\Folder;
 
 class TodosPageGenerator
 {
-    public const TODOS_PAGE_FILENAME = 'Todos.md';
 
     private CheckboxAggregator $aggregator;
     private PageLinkBuilder $linkBuilder;

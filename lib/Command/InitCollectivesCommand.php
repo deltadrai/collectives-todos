@@ -12,6 +12,7 @@ use OCP\Files\File;
 use OCP\Files\Folder;
 use OCA\CollectiveTodos\Service\CheckboxParser;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 
 class InitCollectivesCommand extends Command
@@ -19,16 +20,19 @@ class InitCollectivesCommand extends Command
     private CheckboxParser $parser;
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
+    private SettingsService $settings;
 
     public function __construct(
         CheckboxParser $parser,
         CheckboxAggregator $aggregator,
-        TodosPageGenerator $generator
+        TodosPageGenerator $generator,
+        SettingsService $settings
     ) {
         parent::__construct();
         $this->parser = $parser;
         $this->aggregator = $aggregator;
         $this->generator = $generator;
+        $this->settings = $settings;
     }
 
     protected function configure(): void
@@ -56,9 +60,12 @@ class InitCollectivesCommand extends Command
 
         $this->aggregator->clear($collectiveFolder);
 
+        $collectiveId = $this->aggregator->getCollectiveId($collectiveFolder);
+        $todosFilename = $this->settings->resolveTodosPageFilename($collectiveId);
+
         $pageCount = 0;
         $checkboxCount = 0;
-        foreach ($this->scanMarkdownFiles($collectiveFolder) as $file) {
+        foreach ($this->scanMarkdownFiles($collectiveFolder, $todosFilename) as $file) {
             $checkboxes = $this->parser->parse($file->getContent());
             $this->aggregator->updatePageCheckboxes(
                 $collectiveFolder,
@@ -84,17 +91,17 @@ class InitCollectivesCommand extends Command
      *
      * @return \Generator<File>
      */
-    private function scanMarkdownFiles(Folder $folder): \Generator
+    private function scanMarkdownFiles(Folder $folder, string $todosFilename): \Generator
     {
         foreach ($folder->getDirectoryListing() as $node) {
             if ($node instanceof Folder) {
                 if (str_starts_with($node->getName(), '.')) {
                     continue;
                 }
-                yield from $this->scanMarkdownFiles($node);
+                yield from $this->scanMarkdownFiles($node, $todosFilename);
             } elseif ($node instanceof File
                 && $node->getMimeType() === 'text/markdown'
-                && $node->getName() !== TodosPageGenerator::TODOS_PAGE_FILENAME) {
+                && $node->getName() !== $todosFilename) {
                 yield $node;
             }
         }

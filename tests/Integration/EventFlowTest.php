@@ -185,7 +185,9 @@ class EventFlowTest extends TestCase
         $textResetter = new TextDocumentResetter($logger);
         $reverseSync = new TodosReverseSyncService($parser, $aggregator, $this->rootFolder, $textResetter, $logger);
 
-        return new NodeWrittenListener($parser, $aggregator, $generator, $reverseSync, $logger);
+        $settings = new \OCA\CollectiveTodos\Service\SettingsService($config);
+
+        return new NodeWrittenListener($parser, $aggregator, $generator, $reverseSync, $settings, $logger);
     }
 
     private function createCollectiveStorage(): IStorage

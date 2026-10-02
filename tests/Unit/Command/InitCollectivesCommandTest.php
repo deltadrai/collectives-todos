@@ -7,6 +7,7 @@ namespace OCA\CollectiveTodos\Tests\Unit\Command;
 use OCA\CollectiveTodos\Command\InitCollectivesCommand;
 use OCA\CollectiveTodos\Service\CheckboxParser;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCP\Files\File;
 use OCP\Files\Folder;
@@ -20,17 +21,24 @@ class InitCollectivesCommandTest extends TestCase
     private CheckboxParser $parser;
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
+    private SettingsService $settings;
+    private string $todosFilename = 'Todos.md';
 
     protected function setUp(): void
     {
         $this->parser = $this->createMock(CheckboxParser::class);
         $this->aggregator = $this->createMock(CheckboxAggregator::class);
         $this->generator = $this->createMock(TodosPageGenerator::class);
+        $this->settings = $this->createMock(SettingsService::class);
+
+        $this->settings->method('resolveTodosPageFilename')
+            ->willReturnCallback(fn () => $this->todosFilename);
 
         $this->command = new InitCollectivesCommand(
             $this->parser,
             $this->aggregator,
-            $this->generator
+            $this->generator,
+            $this->settings
         );
     }
 
@@ -87,5 +95,42 @@ class InitCollectivesCommandTest extends TestCase
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString('Could not find collectives folder', $commandTester->getDisplay());
+    }
+
+    public function testScanSkipsConfiguredTodosPage(): void
+    {
+        $this->todosFilename = 'Aufgaben.md';
+        $application = new Application();
+        $application->add($this->command);
+
+        $command = $application->find('collectives_todos:init');
+        $commandTester = new CommandTester($command);
+
+        $collectiveFolder = $this->createMock(Folder::class);
+        $todosPage = $this->createMock(File::class);
+        $readme = $this->createMock(File::class);
+
+        $collectiveFolder->method('getName')->willReturn('JF Protokolle');
+        $collectiveFolder->method('getDirectoryListing')->willReturn([$todosPage, $readme]);
+
+        $todosPage->method('getName')->willReturn('Aufgaben.md');
+        $todosPage->method('getMimeType')->willReturn('text/markdown');
+        $todosPage->method('getId')->willReturn(4148);
+
+        $readme->method('getName')->willReturn('Readme.md');
+        $readme->method('getMimeType')->willReturn('text/markdown');
+        $readme->method('getId')->willReturn(42);
+        $readme->method('getContent')->willReturn('- [ ] A task');
+
+        $this->aggregator->method('getFolder')->with('8')->willReturn($collectiveFolder);
+        $this->aggregator->method('derivePageTitle')->willReturn('Page Title');
+        $this->parser->method('parse')->willReturn([['text' => 'A task', 'checked' => false, 'line' => 1, 'raw' => '- [ ] A task']]);
+
+        $this->aggregator->expects($this->once())->method('updatePageCheckboxes')
+            ->with($collectiveFolder, '42', 'Page Title', $this->anything());
+
+        $commandTester->execute(['collectives-id' => '8']);
+
+        $this->assertStringContainsString('Scanned 1 pages, found 1 checkboxes', $commandTester->getDisplay());
     }
 }

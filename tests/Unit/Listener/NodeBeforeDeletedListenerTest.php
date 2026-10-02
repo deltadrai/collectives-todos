@@ -6,6 +6,7 @@ namespace OCA\CollectiveTodos\Tests\Unit\Listener;
 
 use OCA\CollectiveTodos\Listener\NodeBeforeDeletedListener;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCP\Files\Events\Node\BeforeNodeDeletedEvent;
 use OCP\Files\File;
@@ -21,17 +22,24 @@ class NodeBeforeDeletedListenerTest extends TestCase
     private NodeBeforeDeletedListener $listener;
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
+    private SettingsService $settings;
     private LoggerInterface $logger;
+    private string $todosFilename = 'Todos.md';
 
     protected function setUp(): void
     {
         $this->aggregator = $this->createMock(CheckboxAggregator::class);
         $this->generator = $this->createMock(TodosPageGenerator::class);
+        $this->settings = $this->createMock(SettingsService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+
+        $this->settings->method('resolveTodosPageFilename')
+            ->willReturnCallback(fn () => $this->todosFilename);
 
         $this->listener = new NodeBeforeDeletedListener(
             $this->aggregator,
             $this->generator,
+            $this->settings,
             $this->logger
         );
     }
@@ -157,7 +165,7 @@ class NodeBeforeDeletedListenerTest extends TestCase
     {
         $todosPage = $this->createMock(File::class);
         $todosPage->method('getMimeType')->willReturn('text/markdown');
-        $todosPage->method('getName')->willReturn(TodosPageGenerator::TODOS_PAGE_FILENAME);
+        $todosPage->method('getName')->willReturn('Todos.md');
         $todosPage->method('getId')->willReturn(4148);
 
         $pageFolder = $this->createMock(Folder::class);
@@ -221,6 +229,33 @@ class NodeBeforeDeletedListenerTest extends TestCase
             ->willThrowException(new \RuntimeException('boom'));
 
         $this->logger->expects($this->once())->method('warning');
+
+        $this->listener->handle($event);
+    }
+
+    public function testCustomTodosPageNameNotCollected(): void
+    {
+        $this->todosFilename = 'Aufgaben.md';
+
+        $todosPage = $this->createMock(File::class);
+        $todosPage->method('getMimeType')->willReturn('text/markdown');
+        $todosPage->method('getName')->willReturn('Aufgaben.md');
+        $todosPage->method('getId')->willReturn(4148);
+
+        $pageFolder = $this->createMock(Folder::class);
+        $pageFolder->method('getDirectoryListing')->willReturn([$todosPage]);
+
+        $storage = $this->createMock(CollectiveStorage::class);
+        $storage->method('instanceOfStorage')->willReturn(true);
+        $pageFolder->method('getStorage')->willReturn($storage);
+
+        $event = $this->createMock(BeforeNodeDeletedEvent::class);
+        $event->method('getNode')->willReturn($pageFolder);
+
+        $this->aggregator->method('getCollectiveFolderFromNode')->willReturn($this->collectiveFolder());
+
+        $this->aggregator->expects($this->never())->method('removePage');
+        $this->generator->expects($this->never())->method('regenerateTodosPage');
 
         $this->listener->handle($event);
     }

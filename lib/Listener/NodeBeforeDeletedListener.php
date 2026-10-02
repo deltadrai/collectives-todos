@@ -11,6 +11,7 @@ use OCP\Files\File;
 use OCP\Files\Folder;
 use OCA\Collectives\Mount\CollectiveStorage;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use Psr\Log\LoggerInterface;
 
@@ -30,15 +31,18 @@ class NodeBeforeDeletedListener implements IEventListener
 {
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
+    private SettingsService $settings;
     private LoggerInterface $logger;
 
     public function __construct(
         CheckboxAggregator $aggregator,
         TodosPageGenerator $generator,
+        SettingsService $settings,
         LoggerInterface $logger
     ) {
         $this->aggregator = $aggregator;
         $this->generator = $generator;
+        $this->settings = $settings;
         $this->logger = $logger;
     }
 
@@ -58,12 +62,15 @@ class NodeBeforeDeletedListener implements IEventListener
         }
 
         try {
-            $pageIds = $this->collectMarkdownPageIds($node);
+            $collectiveFolder = $this->aggregator->getCollectiveFolderFromNode($node);
+            $collectiveId = $this->aggregator->getCollectiveId($collectiveFolder);
+            $todosFilename = $this->settings->resolveTodosPageFilename($collectiveId);
+
+            $pageIds = $this->collectMarkdownPageIds($node, $todosFilename);
             if ($pageIds === []) {
                 return;
             }
 
-            $collectiveFolder = $this->aggregator->getCollectiveFolderFromNode($node);
             foreach ($pageIds as $pageId) {
                 $this->aggregator->removePage($collectiveFolder, $pageId);
             }
@@ -81,17 +88,17 @@ class NodeBeforeDeletedListener implements IEventListener
      *
      * @return array<int, string>
      */
-    private function collectMarkdownPageIds(Folder $folder): array
+    private function collectMarkdownPageIds(Folder $folder, string $todosFilename): array
     {
         $pageIds = [];
         foreach ($folder->getDirectoryListing() as $child) {
             if ($child instanceof Folder) {
-                $pageIds = array_merge($pageIds, $this->collectMarkdownPageIds($child));
+                $pageIds = array_merge($pageIds, $this->collectMarkdownPageIds($child, $todosFilename));
                 continue;
             }
             if ($child instanceof File
                 && $child->getMimeType() === 'text/markdown'
-                && $child->getName() !== TodosPageGenerator::TODOS_PAGE_FILENAME) {
+                && $child->getName() !== $todosFilename) {
                 $pageIds[] = (string)$child->getId();
             }
         }

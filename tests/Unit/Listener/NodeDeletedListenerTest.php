@@ -6,6 +6,7 @@ namespace OCA\CollectiveTodos\Tests\Unit\Listener;
 
 use OCA\CollectiveTodos\Listener\NodeDeletedListener;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCP\Files\Events\Node\NodeDeletedEvent;
 use OCP\Files\File;
@@ -20,17 +21,24 @@ class NodeDeletedListenerTest extends TestCase
     private NodeDeletedListener $listener;
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
+    private SettingsService $settings;
     private LoggerInterface $logger;
+    private string $todosFilename = 'Todos.md';
 
     protected function setUp(): void
     {
         $this->aggregator = $this->createMock(CheckboxAggregator::class);
         $this->generator = $this->createMock(TodosPageGenerator::class);
+        $this->settings = $this->createMock(SettingsService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+
+        $this->settings->method('resolveTodosPageFilename')
+            ->willReturnCallback(fn () => $this->todosFilename);
 
         $this->listener = new NodeDeletedListener(
             $this->aggregator,
             $this->generator,
+            $this->settings,
             $this->logger
         );
     }
@@ -89,7 +97,7 @@ class NodeDeletedListenerTest extends TestCase
         $node = $this->createMock(File::class);
         $node->method('getStorage')->willReturn($storage);
         $node->method('getMimeType')->willReturn('text/markdown');
-        $node->method('getName')->willReturn(TodosPageGenerator::TODOS_PAGE_FILENAME);
+        $node->method('getName')->willReturn('Todos.md');
 
         $event = $this->createMock(NodeDeletedEvent::class);
         $event->method('getNode')->willReturn($node);
@@ -121,6 +129,57 @@ class NodeDeletedListenerTest extends TestCase
         $this->aggregator->expects($this->once())->method('removePage')
             ->with($collectiveFolder, '456');
 
+        $this->generator->expects($this->once())->method('regenerateTodosPage')
+            ->with($collectiveFolder);
+
+        $this->listener->handle($event);
+    }
+
+    public function testCustomTodosPageNameIsSkipped(): void
+    {
+        $this->todosFilename = 'Aufgaben.md';
+
+        $storage = $this->createMock(CollectiveStorage::class);
+        $storage->method('instanceOfStorage')->willReturn(true);
+
+        $node = $this->createMock(File::class);
+        $node->method('getStorage')->willReturn($storage);
+        $node->method('getMimeType')->willReturn('text/markdown');
+        $node->method('getName')->willReturn('Aufgaben.md');
+
+        $event = $this->createMock(NodeDeletedEvent::class);
+        $event->method('getNode')->willReturn($node);
+
+        $this->aggregator->method('getCollectiveFolderFromNode')
+            ->willReturn($this->createMock(Folder::class));
+
+        $this->aggregator->expects($this->never())->method('removePage');
+        $this->generator->expects($this->never())->method('regenerateTodosPage');
+
+        $this->listener->handle($event);
+    }
+
+    public function testDefaultNameIsRemovedWhenOverridden(): void
+    {
+        $this->todosFilename = 'Aufgaben.md';
+        $collectiveFolder = $this->createMock(Folder::class);
+
+        $storage = $this->createMock(CollectiveStorage::class);
+        $storage->method('instanceOfStorage')->willReturn(true);
+
+        $node = $this->createMock(File::class);
+        $node->method('getStorage')->willReturn($storage);
+        $node->method('getMimeType')->willReturn('text/markdown');
+        $node->method('getId')->willReturn(4148);
+        $node->method('getName')->willReturn('Todos.md');
+
+        $event = $this->createMock(NodeDeletedEvent::class);
+        $event->method('getNode')->willReturn($node);
+
+        $this->aggregator->method('getCollectiveFolderFromNode')->willReturn($collectiveFolder);
+
+        $this->aggregator->expects($this->once())->method('removePage')
+            ->with($collectiveFolder, '4148');
         $this->generator->expects($this->once())->method('regenerateTodosPage')
             ->with($collectiveFolder);
 

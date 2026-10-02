@@ -11,6 +11,7 @@ use OCP\Files\File;
 use OCA\Collectives\Mount\CollectiveStorage;
 use OCA\CollectiveTodos\Service\CheckboxParser;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCA\CollectiveTodos\Service\TodosReverseSyncService;
 use Psr\Log\LoggerInterface;
@@ -22,6 +23,7 @@ class NodeWrittenListener implements IEventListener
     private CheckboxAggregator $aggregator;
     private TodosPageGenerator $generator;
     private TodosReverseSyncService $reverseSync;
+    private SettingsService $settings;
     private LoggerInterface $logger;
 
     public function __construct(
@@ -29,12 +31,14 @@ class NodeWrittenListener implements IEventListener
         CheckboxAggregator $aggregator,
         TodosPageGenerator $generator,
         TodosReverseSyncService $reverseSync,
+        SettingsService $settings,
         LoggerInterface $logger
     ) {
         $this->parser = $parser;
         $this->aggregator = $aggregator;
         $this->generator = $generator;
         $this->reverseSync = $reverseSync;
+        $this->settings = $settings;
         $this->logger = $logger;
     }
 
@@ -58,14 +62,16 @@ class NodeWrittenListener implements IEventListener
         }
 
         try {
+            $collectiveFolder = $this->aggregator->getCollectiveFolderFromNode($node);
+            $collectiveId = $this->aggregator->getCollectiveId($collectiveFolder);
+            $todosFilename = $this->settings->resolveTodosPageFilename($collectiveId);
+
             // Writes to the Todos page itself are reverse-synced to the source
             // pages instead of being aggregated (aggregating them would loop)
-            if ($node->getName() === TodosPageGenerator::TODOS_PAGE_FILENAME) {
+            if ($node->getName() === $todosFilename) {
                 $this->syncTodosPageToSources($node);
                 return;
             }
-
-            $collectiveFolder = $this->aggregator->getCollectiveFolderFromNode($node);
 
             $checkboxes = $this->parser->parse($node->getContent());
             $pageId = (string)$node->getId();
