@@ -89,6 +89,35 @@ class TodosReverseSyncServiceTest extends TestCase
         $this->assertStringContainsString('- [x] Buy milk', $captured);
     }
 
+	public function testSyncsWhenEditorTrimmedTrailingWhitespace(): void
+	{
+		// The cache holds the source line's raw text including its trailing
+		// space; the Text editor strips trailing whitespace on save, so the
+		// Todos page line arrives trimmed and must still match the cache
+		$this->cacheWithPage('4127', 'Meeting Notes', [
+			['text' => 'Projekt ', 'checked' => false, 'line' => 3, 'raw' => '- [ ] Projekt '],
+		]);
+
+		$todosContent = "# Todos\n\n"
+			. "## [Meeting Notes](/apps/collectives/jf-protokolle-8/meeting-notes-4127)\n\n"
+			. "- [x] Projekt\n";
+
+		$file = $this->mockSourceFile("# Meeting Notes\n\n- [ ] Projekt \n");
+		$this->rootFolder->method('getById')->with(4127)->willReturn([$file]);
+
+		$captured = '';
+		$file->expects($this->once())
+			->method('putContent')
+			->willReturnCallback(function (string $content) use (&$captured): void {
+				$captured = $content;
+			});
+
+		$count = $this->service->syncFromTodosPage($this->collectiveFolder, $todosContent);
+
+		$this->assertSame(1, $count);
+		$this->assertStringContainsString('- [x] Projekt ', $captured);
+	}
+
     public function testResetsTextDocumentStateOfSyncedSourcePage(): void
     {
         $this->cacheWithPage('4127', 'Meeting Notes', [

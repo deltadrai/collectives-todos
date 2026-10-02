@@ -158,14 +158,25 @@ class CheckboxParserTest extends TestCase
     {
         $content = "- [ ]   Task with extra spaces\n- [x]    Another task";
         $result = $this->parser->parse($content);
-        
+
         $this->assertCount(2, $result);
-        
+
         $this->assertEquals('Task with extra spaces', $result[0]['text']);
         $this->assertFalse($result[0]['checked']);
-        
+
         $this->assertEquals('Another task', $result[1]['text']);
         $this->assertTrue($result[1]['checked']);
+    }
+
+    public function testParseTrimsTrailingWhitespace(): void
+    {
+        // The Text editor strips trailing whitespace on save; parsed texts
+        // must not depend on it, or the Todos page no longer matches the cache
+        $result = $this->parser->parse("- [ ] Projekt \n- [x] Task \r\n");
+
+        $this->assertCount(2, $result);
+        $this->assertEquals('Projekt', $result[0]['text']);
+        $this->assertEquals('Task', $result[1]['text']);
     }
 
     public function testParseNestedNumberedList(): void

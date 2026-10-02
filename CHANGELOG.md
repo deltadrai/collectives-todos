@@ -31,6 +31,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Reverse-syncing a tick made in the Collectives editor: the Text editor strips trailing whitespace
+  on save, so a Todos page checkbox whose source line ends in spaces no longer matched the cached
+  source text and the tick was silently dropped. Checkbox texts are now trimmed when parsed, and the
+  reverse sync also tolerates untrimmed legacy cache entries.
 - Deleting the Todos page recreates it immediately. Collectives moves deleted pages to trash; the
   trash move is complete before the delete event fires and collectives paths are never locked, so no
   delayed recreation is needed.

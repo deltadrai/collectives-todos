@@ -23,7 +23,10 @@ class CheckboxParser
             // Match various list markers: -, *, +, or numbered lists
             if (preg_match('/^(\s*)([\-*+]|\d+\.)\s*\[(x|X| |)\](\s+)(.+)$/u', $line, $matches)) {
                 $checked = $matches[3] !== ' ';
-                $text = $matches[5];
+                // Trim (also CRLF remnants): the Text editor strips
+                // trailing whitespace on save, so checkbox texts must
+                // not depend on it to stay comparable
+                $text = trim($matches[5]);
 
                 $checkboxes[] = [
                     'text' => $text,

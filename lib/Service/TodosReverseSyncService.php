@@ -167,7 +167,9 @@ class TodosReverseSyncService
             if (in_array($index, $usedIndices, true)) {
                 continue;
             }
-            if ($cached['text'] === $todoCheckbox['text']
+            // Cached texts may predate the parser's trimming; compare
+            // normalized so legacy cache entries still match
+            if (trim($cached['text']) === trim($todoCheckbox['text'])
                 && $cached['checked'] !== $todoCheckbox['checked']) {
                 return ['index' => $index, 'line' => $cached['line']];
             }
