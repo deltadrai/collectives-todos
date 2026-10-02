@@ -19,6 +19,7 @@ class Admin implements IDelegatedSettings
 
 	public function getForm(): TemplateResponse
 	{
+		\OCP\Util::addScript('collectives_todos', 'admin-picker');
 		return new TemplateResponse('collectives_todos', 'admin', $this->panelData->getPanelData());
 	}
 
