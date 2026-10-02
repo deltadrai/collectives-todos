@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Per-collective Enable/Disable button in the settings page's per-collective table. Disabling
+  deletes the collective's Todos page (to trash) and stops generating or reverse-syncing it; the
+  checkbox cache keeps being maintained, so enabling regenerates a consistent page immediately.
+  Enabled is the default; there is no instance-wide toggle.
+
 ### Fixed
 
 - Deleting the Todos page recreates it immediately. Collectives moves deleted pages to trash; the

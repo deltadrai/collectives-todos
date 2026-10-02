@@ -28,6 +28,7 @@ class NodeWrittenListenerTest extends TestCase
     private SettingsService $settings;
     private LoggerInterface $logger;
     private string $todosFilename = 'Todos.md';
+    private bool $enabled = true;
 
     protected function setUp(): void
     {
@@ -40,6 +41,8 @@ class NodeWrittenListenerTest extends TestCase
 
         $this->settings->method('resolveTodosPageFilename')
             ->willReturnCallback(fn () => $this->todosFilename);
+        $this->settings->method('isEnabled')
+            ->willReturnCallback(fn () => $this->enabled);
 
         $this->listener = new NodeWrittenListener(
             $this->parser,
@@ -186,6 +189,34 @@ class NodeWrittenListenerTest extends TestCase
             ->method('syncFromTodosPage')
             ->with($collectiveFolder, '- [x] Test task');
         $this->aggregator->expects($this->never())->method('updatePageCheckboxes');
+
+        $this->listener->handle($event);
+    }
+
+    public function testTodosPageWriteSkippedWhenCollectiveDisabled(): void
+    {
+        $this->enabled = false;
+        $collectiveFolder = $this->createMock(Folder::class);
+
+        $storage = $this->createMock(CollectiveStorage::class);
+        $storage->method('instanceOfStorage')->willReturn(true);
+
+        $node = $this->createMock(File::class);
+        $node->method('getStorage')->willReturn($storage);
+        $node->method('getMimeType')->willReturn('text/markdown');
+        $node->method('getName')->willReturn('Todos.md');
+        $node->method('getContent')->willReturn('- [x] Test task');
+
+        $event = $this->createMock(NodeWrittenEvent::class);
+        $event->method('getNode')->willReturn($node);
+
+        $this->aggregator->method('getCollectiveFolderFromNode')->willReturn($collectiveFolder);
+
+        // A disabled collective is not reverse-synced: its Todos page is
+        // not managed and could be a stale snapshot restored from trash
+        $this->reverseSync->expects($this->never())->method('syncFromTodosPage');
+        $this->aggregator->expects($this->never())->method('updatePageCheckboxes');
+        $this->generator->expects($this->never())->method('regenerateTodosPage');
 
         $this->listener->handle($event);
     }

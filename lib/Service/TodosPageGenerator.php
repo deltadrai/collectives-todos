@@ -33,13 +33,18 @@ class TodosPageGenerator
     }
 
     /**
-     * Generate and save the Todos page for a collectives.
+     * Generate and save the Todos page for a collectives. Skipped when the
+     * collective is disabled in the settings (the checkbox cache keeps
+     * being maintained, so re-enabling is immediately consistent).
      *
      * @param Folder $collectiveFolder The root folder of the collectives
      */
     public function regenerateTodosPage(Folder $collectiveFolder): void
     {
         $collectiveId = $this->aggregator->getCollectiveId($collectiveFolder);
+        if (!$this->settings->isEnabled($collectiveId)) {
+            return;
+        }
         $filename = $this->settings->resolveTodosPageFilename($collectiveId);
         $content = $this->generateContent($collectiveFolder, $filename);
         $this->saveTodosPage($collectiveFolder, $content, $filename);

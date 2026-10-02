@@ -26,6 +26,7 @@ class TodosPageGeneratorTest extends TestCase
     private TextDocumentResetter $textResetter;
     private Folder $collectiveFolder;
     private string $todosFilename = 'Todos.md';
+    private bool $enabled = true;
 
     protected function setUp(): void
     {
@@ -39,6 +40,8 @@ class TodosPageGeneratorTest extends TestCase
 
         $this->settings->method('resolveTodosPageFilename')
             ->willReturnCallback(fn () => $this->todosFilename);
+        $this->settings->method('isEnabled')
+            ->willReturnCallback(fn () => $this->enabled);
 
         $this->generator = new TodosPageGenerator(
             $this->aggregator,
@@ -469,6 +472,22 @@ class TodosPageGeneratorTest extends TestCase
         $this->emojiService->expects($this->once())
             ->method('enforceEmoji')
             ->with($this->collectiveFolder, 6);
+
+        $this->generator->regenerateTodosPage($this->collectiveFolder);
+    }
+
+    public function testRegenerateSkippedWhenCollectiveDisabled(): void
+    {
+        $this->enabled = false;
+        $this->aggregator->method('getCollectiveId')->willReturn(6);
+
+        // Nothing is read or written for a disabled collective
+        $this->aggregator->expects($this->never())->method('getAllCheckboxes');
+        $this->collectiveFolder->expects($this->never())->method('nodeExists');
+        $this->collectiveFolder->expects($this->never())->method('newFile');
+        $this->textResetter->expects($this->never())->method('resetForFile');
+        $this->ordering->expects($this->never())->method('enforcePosition');
+        $this->emojiService->expects($this->never())->method('enforceEmoji');
 
         $this->generator->regenerateTodosPage($this->collectiveFolder);
     }

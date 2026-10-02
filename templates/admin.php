@@ -75,12 +75,13 @@
         </div>
 
         <h3><?php p('Per-collective overrides'); ?></h3>
-        <p class="settings-hint"><?php p('Empty fields use the defaults.'); ?></p>
+        <p class="settings-hint"><?php p('Empty fields use the defaults. Disabled collectives get no Todos page.'); ?></p>
 
         <table class="grid">
             <thead>
             <tr>
                 <th><?php p('Collective'); ?></th>
+                <th><?php p('Todos page'); ?></th>
                 <th><?php p('Todos page name'); ?></th>
                 <th><?php p('Emoji'); ?></th>
                 <th><?php p('Position in the page tree'); ?></th>
@@ -91,6 +92,15 @@
             <?php foreach ($collectives as $collective): ?>
                 <tr>
                     <td><?php p($collective['name']); ?></td>
+                    <td>
+                        <?php if ($collective['enabled']): ?>
+                            <button type="submit" name="toggle_enabled" value="<?php p($collective['id']); ?>"
+                                    class="button"><?php p('Disable'); ?></button>
+                        <?php else: ?>
+                            <button type="submit" name="toggle_enabled" value="<?php p($collective['id']); ?>"
+                                    class="button primary"><?php p('Enable'); ?></button>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <input type="text" name="override[<?php p($collective['id']); ?>][todos_page_name]"
                                value="<?php p($collective['todos_page_name']); ?>" placeholder="<?php p($defaults['todos_page_name']); ?>">

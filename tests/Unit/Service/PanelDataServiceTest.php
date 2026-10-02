@@ -17,6 +17,7 @@ class PanelDataServiceTest extends TestCase
 	private CollectiveMapper $collectiveMapper;
 	private IURLGenerator $urlGenerator;
 	private PanelDataService $service;
+	private bool $enabled = true;
 
 	protected function setUp(): void
 	{
@@ -27,6 +28,8 @@ class PanelDataServiceTest extends TestCase
 			SettingsService::KEY_TREE_POSITION => 'top',
 			SettingsService::KEY_MAX_CHECKBOXES => 0,
 		]);
+		$this->settings->method('isEnabled')
+			->willReturnCallback(fn (?int $collectiveId) => $this->enabled);
 		$this->collectiveMapper = $this->getMockBuilder(CollectiveMapper::class)
 			->disableOriginalConstructor()->getMock();
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);
@@ -81,6 +84,20 @@ class PanelDataServiceTest extends TestCase
 		$this->assertSame('', $data['collectives'][0]['todos_page_emoji']);
 		$this->assertSame('', $data['collectives'][0]['tree_position']);
 		$this->assertSame('', $data['collectives'][0]['max_checkboxes']);
+		$this->assertTrue($data['collectives'][0]['enabled']);
+	}
+
+	public function testDisabledCollectiveExposed(): void
+	{
+		$this->enabled = false;
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(8),
+		]);
+		$this->wireCollectiveNames([8 => 'Anton']);
+
+		$data = $this->service->getPanelData();
+
+		$this->assertFalse($data['collectives'][0]['enabled']);
 	}
 
 	public function testOverridesPrefilled(): void

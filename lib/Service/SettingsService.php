@@ -22,6 +22,10 @@ class SettingsService
 	public const KEY_TODOS_PAGE_EMOJI = 'todos_page_emoji';
 	public const KEY_TREE_POSITION = 'tree_position';
 	public const KEY_MAX_CHECKBOXES = 'max_checkboxes';
+	public const KEY_ENABLED = 'enabled';
+
+	public const VALUE_ENABLED = '1';
+	public const VALUE_DISABLED = '0';
 
 	public const POSITION_TOP = 'top';
 	public const POSITION_BOTTOM = 'bottom';
@@ -40,6 +44,7 @@ class SettingsService
 		self::KEY_TODOS_PAGE_EMOJI => '',
 		self::KEY_TREE_POSITION => self::POSITION_TOP,
 		self::KEY_MAX_CHECKBOXES => '0',
+		self::KEY_ENABLED => self::VALUE_ENABLED,
 	];
 
 	private IConfig $config;
@@ -105,6 +110,15 @@ class SettingsService
 		return (int)$this->resolve($collectiveId, $key);
 	}
 
+	/**
+	 * Whether the app manages the Todos page of the given collective
+	 * (default: enabled). A null collective id resolves to the default.
+	 */
+	public function isEnabled(?int $collectiveId): bool
+	{
+		return $this->resolve($collectiveId, self::KEY_ENABLED) !== self::VALUE_DISABLED;
+	}
+
 	public function resolveTodosPageFilename(?int $collectiveId): string
 	{
 		return self::normalizePageName($this->resolve($collectiveId, self::KEY_TODOS_PAGE_NAME)) . '.md';
@@ -154,6 +168,14 @@ class SettingsService
 		return (int)$raw;
 	}
 
+	public static function normalizeEnabled(string $raw): string
+	{
+		if (!in_array($raw, [self::VALUE_ENABLED, self::VALUE_DISABLED], true)) {
+			throw new \InvalidArgumentException('The enabled flag must be 0 or 1.');
+		}
+		return $raw;
+	}
+
 	/**
 	 * Validate a Todos page emoji the same way the Collectives app validates
 	 * page emoji (single emoji grapheme, max 8 characters). Empty means no
@@ -177,6 +199,7 @@ class SettingsService
 			self::KEY_TODOS_PAGE_EMOJI => self::normalizePageEmoji($value),
 			self::KEY_TREE_POSITION => self::normalizePosition($value),
 			self::KEY_MAX_CHECKBOXES => (string)self::normalizeMaxCheckboxes($value),
+			self::KEY_ENABLED => self::normalizeEnabled($value),
 			default => throw new \InvalidArgumentException('Unknown config key: ' . $key),
 		};
 

@@ -57,11 +57,12 @@ alternatively a folder file id or a folder path works.
 Configure the app under Settings → Admin → Collectives Todos. Every config item has an instance-wide
 default and can be overridden per collective (an empty field uses the default):
 
-| Config item        | Meaning                                                           | Default       |
-| ------------------ | ----------------------------------------------------------------- | ------------- |
-| Todos page name    | Name of the generated page (without `.md`)                        | `Todos`       |
-| Tree position      | Position of the Todos page in the Collectives page tree           | always on top |
-| Maximum checkboxes | Cap on the total cached checkboxes per collective (0 = unlimited) | `0`           |
+| Config item        | Meaning                                                                    | Default       |
+| ------------------ | -------------------------------------------------------------------------- | ------------- |
+| Todos page name    | Name of the generated page (without `.md`)                                 | `Todos`       |
+| Tree position      | Position of the Todos page in the Collectives page tree                    | always on top |
+| Maximum checkboxes | Cap on the total cached checkboxes per collective (0 = unlimited)          | `0`           |
+| Enabled (toggle)   | Whether the Todos page is managed for a collective (button per collective) | enabled       |
 
 - **Tree position**: `always on top` pins the Todos page to the top of the page tree,
   `always on bottom` to the bottom, `alphabetically` sorts it by title among the unpinned pages. The
@@ -78,6 +79,11 @@ default and can be overridden per collective (an empty field uses the default):
   position, manual emoji changes made in Collectives are re-asserted on the next page save.
 - **Maximum checkboxes**: once the limit is reached, further checkboxes are not cached and the Todos
   page shows a `*(list truncated by the settings limit)*` note under the affected page's section.
+- **Enabled**: each collective row in the settings has an Enable/Disable button (per-collective
+  only, no instance-wide default). Disabling deletes the collective's Todos page (to trash) and
+  stops generating or reverse-syncing it; the checkbox cache keeps being updated, so enabling
+  regenerates a consistent page immediately. Collectives without any checkboxes still get a Todos
+  page showing "No tasks found in this collectives."
 
 ## Data Storage
 

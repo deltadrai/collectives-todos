@@ -144,6 +144,19 @@ class SettingsController extends Controller
 			}
 		}
 
+		// Enable/Disable button of a collective row: applied after the save,
+		// so enabling generates the Todos page with the fresh settings
+		$toggleId = (string)$this->request->getParam('toggle_enabled', '');
+		if ($toggleId !== '' && ctype_digit($toggleId) && in_array((int)$toggleId, $collectiveIds, true)) {
+			$collectiveId = (int)$toggleId;
+			$error = $this->settings->isEnabled($collectiveId)
+				? $this->applier->disableCollective($collectiveId)
+				: $this->applier->enableCollective($collectiveId);
+			if ($error !== null) {
+				$applyErrors[] = 'Collective ' . $collectiveId . ': ' . $error;
+			}
+		}
+
 		if ($applyErrors !== []) {
 			return new TemplateResponse('collectives_todos', 'admin', $this->panelData->getPanelData([], $applyErrors));
 		}

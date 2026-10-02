@@ -9,6 +9,7 @@ use OCA\CollectiveTodos\Service\PageEmojiService;
 use OCA\CollectiveTodos\Service\PageOrderingService;
 use OCA\CollectiveTodos\Service\SettingsApplierService;
 use OCA\CollectiveTodos\Service\SettingsService;
+use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\NotFoundException;
@@ -18,6 +19,7 @@ use Psr\Log\LoggerInterface;
 class SettingsApplierServiceTest extends TestCase
 {
 	private CheckboxAggregator $aggregator;
+	private TodosPageGenerator $todosPageGenerator;
 	private SettingsService $settings;
 	private PageOrderingService $ordering;
 	private PageEmojiService $emojiService;
@@ -25,19 +27,23 @@ class SettingsApplierServiceTest extends TestCase
 	private SettingsApplierService $service;
 	private Folder $collectiveFolder;
 	private string $resolvedFilename = 'Todos.md';
+	private bool $enabled = true;
 
 	protected function setUp(): void
 	{
 		$this->aggregator = $this->createMock(CheckboxAggregator::class);
+		$this->todosPageGenerator = $this->createMock(TodosPageGenerator::class);
 		$this->settings = $this->createMock(SettingsService::class);
 		$this->ordering = $this->createMock(PageOrderingService::class);
 		$this->emojiService = $this->createMock(PageEmojiService::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
-		$this->service = new SettingsApplierService($this->aggregator, $this->settings, $this->ordering, $this->emojiService, $this->logger);
+		$this->service = new SettingsApplierService($this->aggregator, $this->todosPageGenerator, $this->settings, $this->ordering, $this->emojiService, $this->logger);
 		$this->collectiveFolder = $this->createMock(Folder::class);
 
 		$this->settings->method('resolveTodosPageFilename')
 			->willReturnCallback(fn (int $collectiveId) => $this->resolvedFilename);
+		$this->settings->method('isEnabled')
+			->willReturnCallback(fn (?int $collectiveId) => $this->enabled);
 	}
 
 	/**
@@ -177,5 +183,88 @@ class SettingsApplierServiceTest extends TestCase
 
 		$this->assertNotNull($error);
 		$this->assertStringContainsString('move failed', $error);
+	}
+
+	public function testApplySkippedWhenCollectiveDisabled(): void
+	{
+		$this->enabled = false;
+
+		// Not even the collective folder is resolved for a disabled collective
+		$this->aggregator->expects($this->never())->method('getFolder');
+		$this->ordering->expects($this->never())->method('enforcePosition');
+		$this->emojiService->expects($this->never())->method('enforceEmoji');
+
+		$this->assertNull($this->service->applyToCollective(8, 'Todos.md'));
+	}
+
+	public function testEnableCollectiveWritesFlagAndRegenerates(): void
+	{
+		$folder = $this->collectiveFolder;
+		$this->aggregator->method('getFolder')->willReturn($folder);
+
+		$this->settings->expects($this->once())
+			->method('setOverride')
+			->with(8, SettingsService::KEY_ENABLED, SettingsService::VALUE_ENABLED);
+		$this->todosPageGenerator->expects($this->once())
+			->method('regenerateTodosPage')
+			->with($folder);
+
+		$this->assertNull($this->service->enableCollective(8));
+	}
+
+	public function testDisableCollectiveWritesFlagBeforeDeletingPage(): void
+	{
+		$calls = [];
+		$file = $this->createMock(File::class);
+		$file->method('delete')->willReturnCallback(static function () use (&$calls): void {
+			$calls[] = 'delete';
+		});
+		$this->wireFolder(
+			['Todos.md'],
+			fn (string $name) => $file
+		);
+
+		$this->settings->method('setOverride')->willReturnCallback(
+			static function (int $collectiveId, string $key, string $value) use (&$calls): void {
+				$calls[] = 'setOverride:' . $key . '=' . $value;
+			}
+		);
+
+		$this->assertNull($this->service->disableCollective(8));
+
+		// The disabled flag must be written first: the delete fires events
+		// whose listeners must already see the collective as disabled
+		$this->assertSame(
+			['setOverride:' . SettingsService::KEY_ENABLED . '=' . SettingsService::VALUE_DISABLED, 'delete'],
+			$calls
+		);
+	}
+
+	public function testDisableCollectiveWithoutTodosPage(): void
+	{
+		$this->collectiveFolder->method('nodeExists')->willReturn(false);
+		$this->aggregator->method('getFolder')->willReturn($this->collectiveFolder);
+
+		$this->settings->expects($this->once())
+			->method('setOverride')
+			->with(8, SettingsService::KEY_ENABLED, SettingsService::VALUE_DISABLED);
+		$this->collectiveFolder->expects($this->never())->method('get');
+
+		$this->assertNull($this->service->disableCollective(8));
+	}
+
+	public function testDisableFailureBecomesError(): void
+	{
+		$file = $this->createMock(File::class);
+		$file->method('delete')->willThrowException(new \RuntimeException('delete failed'));
+		$this->wireFolder(
+			['Todos.md'],
+			fn (string $name) => $file
+		);
+
+		$error = $this->service->disableCollective(8);
+
+		$this->assertNotNull($error);
+		$this->assertStringContainsString('delete failed', $error);
 	}
 }

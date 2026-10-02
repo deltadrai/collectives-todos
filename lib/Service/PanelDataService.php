@@ -38,7 +38,7 @@ class PanelDataService
 	 *   errors: list<string>,
 	 *   defaults: array{todos_page_name: string, tree_position: string, max_checkboxes: int},
 	 *   positions: array<string, string>,
-	 *   collectives: list<array{id: int, name: string, todos_page_name: string, tree_position: string, max_checkboxes: string}>,
+	 *   collectives: list<array{id: int, name: string, todos_page_name: string, todos_page_emoji: string, tree_position: string, max_checkboxes: string, enabled: bool}>,
 	 * }
 	 */
 	public function getPanelData(array $submitted = [], array $errors = []): array
@@ -88,6 +88,7 @@ class PanelDataService
 				'todos_page_emoji' => $override['todos_page_emoji'],
 				'tree_position' => $override['tree_position'],
 				'max_checkboxes' => $override['max_checkboxes'],
+				'enabled' => $this->settings->isEnabled($collectiveId),
 			];
 		}
 

@@ -37,6 +37,9 @@ class SettingsControllerTest extends TestCase
 	/** @var string default tree position, mutable by setDefault */
 	private string $defaultPosition = 'top';
 
+	/** @var bool resolved enabled state for the toggle button */
+	private bool $enabled = true;
+
 	/** @var string default Todos page emoji, mutable by setDefault */
 	private string $defaultEmoji = '';
 
@@ -90,6 +93,8 @@ class SettingsControllerTest extends TestCase
 				}
 			}
 		);
+		$this->settings->method('isEnabled')
+			->willReturnCallback(fn (?int $collectiveId) => $this->enabled);
 
 		$this->urlGenerator->method('linkToRoute')
 			->willReturnCallback(fn (string $route, array $args = []) => $route . ':' . json_encode($args));
@@ -390,5 +395,95 @@ class SettingsControllerTest extends TestCase
 		$response = $this->controller->save();
 
 		$this->assertInstanceOf(RedirectResponse::class, $response);
+	}
+
+	public function testToggleDisablesEnabledCollective(): void
+	{
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'toggle_enabled' => '6',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+		]);
+
+		$this->applier->expects($this->once())
+			->method('disableCollective')
+			->with(6);
+		$this->applier->expects($this->never())->method('enableCollective');
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(RedirectResponse::class, $response);
+	}
+
+	public function testToggleEnablesDisabledCollective(): void
+	{
+		$this->enabled = false;
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'toggle_enabled' => '6',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+		]);
+
+		$this->applier->expects($this->once())
+			->method('enableCollective')
+			->with(6);
+		$this->applier->expects($this->never())->method('disableCollective');
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(RedirectResponse::class, $response);
+	}
+
+	public function testToggleIgnoredForUnknownCollective(): void
+	{
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'toggle_enabled' => '99',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+		]);
+
+		// A trashed or unknown id is never toggled through
+		$this->applier->expects($this->never())->method('disableCollective');
+		$this->applier->expects($this->never())->method('enableCollective');
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(RedirectResponse::class, $response);
+	}
+
+	public function testToggleErrorRendersPanelWithErrors(): void
+	{
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'toggle_enabled' => '6',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+		]);
+		$this->applier->method('disableCollective')->willReturn('delete failed');
+
+		$expectedParams = ['form_action' => 'x', 'errors' => ['Collective 6: delete failed']];
+		$this->panelData->expects($this->once())->method('getPanelData')
+			->with([], ['Collective 6: delete failed'])
+			->willReturn($expectedParams);
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(TemplateResponse::class, $response);
+		$this->assertSame($expectedParams, $response->getParams());
 	}
 }

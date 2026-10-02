@@ -207,4 +207,43 @@ class SettingsServiceTest extends TestCase
 		$this->assertSame('', $defaults['todos_page_emoji']);
 		$this->assertSame('', $this->service->resolve(8, SettingsService::KEY_TODOS_PAGE_EMOJI));
 	}
+
+	public function testEnabledByDefault(): void
+	{
+		$this->config->method('getAppValue')
+			->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
+
+		$this->assertTrue($this->service->isEnabled(8));
+		$this->assertTrue($this->service->isEnabled(null));
+	}
+
+	public function testDisabledOverrideDisablesCollective(): void
+	{
+		$stored = '';
+		$this->config->method('getAppValue')
+			->willReturnCallback(static function (string $app, string $key, string $default = '') use (&$stored): string {
+				return $key === 'collective.8.enabled' ? $stored : $default;
+			});
+		$this->config->method('setAppValue')
+			->willReturnCallback(static function (string $app, string $key, string $value) use (&$stored): void {
+				if ($key === 'collective.8.enabled') {
+					$stored = $value;
+				}
+			});
+
+		$this->service->setOverride(8, SettingsService::KEY_ENABLED, SettingsService::VALUE_DISABLED);
+
+		$this->assertFalse($this->service->isEnabled(8));
+		$this->assertTrue($this->service->isEnabled(9));
+
+		$this->service->setOverride(8, SettingsService::KEY_ENABLED, SettingsService::VALUE_ENABLED);
+
+		$this->assertTrue($this->service->isEnabled(8));
+	}
+
+	public function testNormalizeEnabledRejectsOtherValues(): void
+	{
+		$this->expectException(\InvalidArgumentException::class);
+		SettingsService::normalizeEnabled('yes');
+	}
 }

@@ -67,9 +67,13 @@ class NodeWrittenListener implements IEventListener
             $todosFilename = $this->settings->resolveTodosPageFilename($collectiveId);
 
             // Writes to the Todos page itself are reverse-synced to the source
-            // pages instead of being aggregated (aggregating them would loop)
+            // pages instead of being aggregated (aggregating them would loop).
+            // A disabled collective is not reverse-synced: its Todos page is
+            // not managed and could be a stale snapshot restored from trash.
             if ($node->getName() === $todosFilename) {
-                $this->syncTodosPageToSources($node);
+                if ($this->settings->isEnabled($collectiveId)) {
+                    $this->syncTodosPageToSources($node);
+                }
                 return;
             }
 
