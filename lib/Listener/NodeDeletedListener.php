@@ -36,7 +36,9 @@ class NodeDeletedListener implements IEventListener
 
     /**
      * Handle file delete events from the Nextcloud file system.
-     * Only processes Collective markdown files.
+     * Only processes Collective markdown files. Deleting the Todos page
+     * itself recreates it; deleting any other page updates the cache and
+     * regenerates the Todos page.
      */
     public function handle(Event $event): void
     {
@@ -59,6 +61,11 @@ class NodeDeletedListener implements IEventListener
             $todosFilename = $this->settings->resolveTodosPageFilename($collectiveId);
 
             if ($node->getName() === $todosFilename) {
+                // The Todos page itself was deleted: recreate it right away.
+                // This is race-free - Collectives pages are moved to trash
+                // (the move is complete before this event fires) and appdata
+                // paths are never locked by the filesystem.
+                $this->generator->regenerateTodosPage($collectiveFolder);
                 return;
             }
 

@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Deleting the Todos page recreates it immediately. Collectives moves deleted pages to trash; the
+  trash move is complete before the delete event fires and collectives paths are never locked, so no
+  delayed recreation is needed.
+- The emoji of a freshly (re)created Todos page is now really written: inserting the missing
+  `collectives_pages` row failed because its `last_user_id` column is NOT NULL. The app-created row
+  now carries an empty user id (the frontend hides the "last edited" info for such pages), like
+  untouched pages.
+
 ### Added
 
 - Todos page emoji config item (default none, per-collective override): the emoji is written to the

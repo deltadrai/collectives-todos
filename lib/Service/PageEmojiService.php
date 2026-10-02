@@ -50,6 +50,10 @@ class PageEmojiService
 			}
 			$page = new Page();
 			$page->setFileId((int)$todosFile->getId());
+			// last_user_id is NOT NULL in collectives_pages; the Todos page
+			// is written by the app, not by a user. An empty id makes the
+			// frontend hide the "last edited" info, like for untouched pages.
+			$page->setLastUserId('');
 			$page->setEmoji($emoji);
 			$this->pageMapper->updateOrInsert($page);
 			return;

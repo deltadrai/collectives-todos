@@ -89,8 +89,10 @@ class NodeDeletedListenerTest extends TestCase
         $this->listener->handle($event);
     }
 
-    public function testHandleIgnoresOwnTodosPage(): void
+    public function testHandleRecreatesDeletedTodosPage(): void
     {
+        $collectiveFolder = $this->createMock(Folder::class);
+
         $storage = $this->createMock(CollectiveStorage::class);
         $storage->method('instanceOfStorage')->willReturn(true);
 
@@ -102,8 +104,13 @@ class NodeDeletedListenerTest extends TestCase
         $event = $this->createMock(NodeDeletedEvent::class);
         $event->method('getNode')->willReturn($node);
 
+        $this->aggregator->method('getCollectiveFolderFromNode')->willReturn($collectiveFolder);
+
+        // The Todos page is managed: deleting it recreates it right away.
+        // It is never cached as a source page, so no removePage happens.
         $this->aggregator->expects($this->never())->method('removePage');
-        $this->generator->expects($this->never())->method('regenerateTodosPage');
+        $this->generator->expects($this->once())->method('regenerateTodosPage')
+            ->with($collectiveFolder);
 
         $this->listener->handle($event);
     }
@@ -135,9 +142,10 @@ class NodeDeletedListenerTest extends TestCase
         $this->listener->handle($event);
     }
 
-    public function testCustomTodosPageNameIsSkipped(): void
+    public function testCustomTodosPageNameIsRecreated(): void
     {
         $this->todosFilename = 'Aufgaben.md';
+        $collectiveFolder = $this->createMock(Folder::class);
 
         $storage = $this->createMock(CollectiveStorage::class);
         $storage->method('instanceOfStorage')->willReturn(true);
@@ -150,11 +158,11 @@ class NodeDeletedListenerTest extends TestCase
         $event = $this->createMock(NodeDeletedEvent::class);
         $event->method('getNode')->willReturn($node);
 
-        $this->aggregator->method('getCollectiveFolderFromNode')
-            ->willReturn($this->createMock(Folder::class));
+        $this->aggregator->method('getCollectiveFolderFromNode')->willReturn($collectiveFolder);
 
         $this->aggregator->expects($this->never())->method('removePage');
-        $this->generator->expects($this->never())->method('regenerateTodosPage');
+        $this->generator->expects($this->once())->method('regenerateTodosPage')
+            ->with($collectiveFolder);
 
         $this->listener->handle($event);
     }

@@ -148,6 +148,9 @@ class PageEmojiServiceTest extends TestCase
 			->willReturnCallback(function (Page $page): Page {
 				$this->assertSame(40, $page->getFileId());
 				$this->assertSame('📋', $page->getEmoji());
+				// collectives_pages.last_user_id is NOT NULL: the row the
+				// app inserts must not rely on a user context existing
+				$this->assertNotNull($page->getLastUserId());
 				return $page;
 			});
 
