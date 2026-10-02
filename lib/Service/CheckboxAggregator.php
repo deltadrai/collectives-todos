@@ -18,11 +18,13 @@ class CheckboxAggregator
 
     private IRootFolder $rootFolder;
     private IConfig $config;
+    private SettingsService $settings;
 
-    public function __construct(IRootFolder $rootFolder, IConfig $config)
+    public function __construct(IRootFolder $rootFolder, IConfig $config, SettingsService $settings)
     {
         $this->rootFolder = $rootFolder;
         $this->config = $config;
+        $this->settings = $settings;
     }
 
     /**
@@ -58,8 +60,48 @@ class CheckboxAggregator
             'last_modified' => (new \DateTime())->format('c'),
             'checkboxes' => $checkboxes,
         ];
+
+        $stored = $this->applyCheckboxCap($cache, $collectiveFolder, $pageId, $checkboxes);
+        $cache['pages'][$pageId]['checkboxes'] = $stored['checkboxes'];
+        if ($stored['truncated']) {
+            $cache['pages'][$pageId]['truncated'] = true;
+        }
+
         $cache['updated'] = (new \DateTime())->format('c');
         $this->writeCache($collectiveFolder, $cache);
+    }
+
+    /**
+     * Cap the total number of cached checkboxes of a collective at the
+     * configured limit (0 = unlimited). The page being updated gets the
+     * remaining budget; entries of other pages are never re-trimmed.
+     *
+     * @param array{version: int, updated: string, collectives_id: string, pages: array} $cache
+     * @param array<array{text: string, checked: bool, line: int, raw: string}> $checkboxes
+     * @return array{checkboxes: array, truncated: bool}
+     */
+    private function applyCheckboxCap(array $cache, Folder $collectiveFolder, string $pageId, array $checkboxes): array
+    {
+        $limit = $this->settings->resolveInt(
+            $this->getCollectiveId($collectiveFolder),
+            SettingsService::KEY_MAX_CHECKBOXES
+        );
+        if ($limit <= 0) {
+            return ['checkboxes' => $checkboxes, 'truncated' => false];
+        }
+
+        $used = 0;
+        foreach ($cache['pages'] as $id => $entry) {
+            if ((string)$id === $pageId) {
+                continue;
+            }
+            $used += count($entry['checkboxes'] ?? []);
+        }
+
+        $remaining = max(0, $limit - $used);
+        $stored = array_slice($checkboxes, 0, $remaining);
+
+        return ['checkboxes' => $stored, 'truncated' => count($checkboxes) > count($stored)];
     }
 
     /**

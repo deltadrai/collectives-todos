@@ -52,8 +52,8 @@ class EventFlowTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
 
         $this->parser = new CheckboxParser();
-        $this->aggregator = new CheckboxAggregator($rootFolder, $config);
         $settings = new \OCA\CollectiveTodos\Service\SettingsService($config);
+        $this->aggregator = new CheckboxAggregator($rootFolder, $config, $settings);
         $this->generator = new TodosPageGenerator(
             $this->aggregator,
             new PageLinkBuilder($collectiveMapper, $pageMapper),
@@ -170,7 +170,7 @@ class EventFlowTest extends TestCase
             return [];
         });
 
-        $aggregator = new CheckboxAggregator($this->rootFolder, $config);
+        $aggregator = new CheckboxAggregator($this->rootFolder, $config, new \OCA\CollectiveTodos\Service\SettingsService($config));
         $parser = new CheckboxParser();
         $collectiveMapper = $this->getMockBuilder(\OCA\Collectives\Db\CollectiveMapper::class)
             ->disableOriginalConstructor()->getMock();

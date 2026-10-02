@@ -77,6 +77,10 @@ class TodosPageGenerator
                 $lines[] = '- [' . $checked . '] ' . $checkbox['text'];
             }
 
+            if ($pageData['truncated'] ?? false) {
+                $lines[] = '*(list truncated by the settings limit)*';
+            }
+
             $lines[] = '';
         }
 

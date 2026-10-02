@@ -395,4 +395,25 @@ class TodosPageGeneratorTest extends TestCase
 
         $this->assertStringContainsString('- [ ] Prepare agenda', $captured);
     }
+
+    public function testTruncatedSectionRendersNote(): void
+    {
+        $pages = [
+            '4127' => [
+                'title' => 'Meeting Notes',
+                'page_id' => '4127',
+                'last_modified' => '2026-10-01T07:00:00Z',
+                'checkboxes' => [
+                    ['text' => 'Prepare agenda', 'checked' => false, 'line' => 5, 'raw' => '- [ ] Prepare agenda'],
+                ],
+                'truncated' => true,
+            ],
+        ];
+
+        $this->aggregator->method('getAllCheckboxes')->willReturn($pages);
+
+        $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
+
+        $this->assertStringContainsString("- [ ] Prepare agenda\n*(list truncated by the settings limit)*", $content);
+    }
 }
