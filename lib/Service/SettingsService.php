@@ -22,7 +22,9 @@ class SettingsService
 	public const KEY_TODOS_PAGE_EMOJI = 'todos_page_emoji';
 	public const KEY_TREE_POSITION = 'tree_position';
 	public const KEY_MAX_CHECKBOXES = 'max_checkboxes';
-	public const KEY_ENABLED = 'enabled';
+	// Not plainly 'enabled': Nextcloud stores the app's own enable state
+	// under the 'enabled' key of the same appconfig namespace
+	public const KEY_ENABLED = 'todos_page_enabled';
 
 	public const VALUE_ENABLED = '1';
 	public const VALUE_DISABLED = '0';

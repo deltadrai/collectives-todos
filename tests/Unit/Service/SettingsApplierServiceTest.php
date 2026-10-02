@@ -267,4 +267,36 @@ class SettingsApplierServiceTest extends TestCase
 		$this->assertNotNull($error);
 		$this->assertStringContainsString('delete failed', $error);
 	}
+
+	public function testEnableTodosPageRegeneratesWithoutWritingOverride(): void
+	{
+		$folder = $this->collectiveFolder;
+		$this->aggregator->method('getFolder')->willReturn($folder);
+
+		$this->settings->expects($this->never())->method('setOverride');
+		$this->todosPageGenerator->expects($this->once())
+			->method('regenerateTodosPage')
+			->with($folder);
+
+		$this->assertNull($this->service->enableTodosPage(8));
+	}
+
+	public function testDisableTodosPageDeletesWithoutWritingOverride(): void
+	{
+		$calls = [];
+		$file = $this->createMock(File::class);
+		$file->method('delete')->willReturnCallback(static function () use (&$calls): void {
+			$calls[] = 'delete';
+		});
+		$this->wireFolder(
+			['Todos.md'],
+			fn (string $name) => $file
+		);
+
+		$this->settings->expects($this->never())->method('setOverride');
+
+		$this->assertNull($this->service->disableTodosPage(8));
+
+		$this->assertSame(['delete'], $calls);
+	}
 }

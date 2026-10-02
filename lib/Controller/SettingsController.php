@@ -157,6 +157,28 @@ class SettingsController extends Controller
 			}
 		}
 
+		// Enable/Disable button of the defaults section: flips the
+		// instance-wide default. Collectives with their own enabled
+		// override keep their state; the others get the side effects.
+		$toggleDefault = (string)$this->request->getParam('toggle_default_enabled', '');
+		if ($toggleDefault !== '') {
+			$newState = $this->settings->isEnabled(null)
+				? SettingsService::VALUE_DISABLED
+				: SettingsService::VALUE_ENABLED;
+			$this->settings->setDefault(SettingsService::KEY_ENABLED, $newState);
+			foreach ($collectiveIds as $collectiveId) {
+				if ($this->settings->getOverride($collectiveId, SettingsService::KEY_ENABLED) !== null) {
+					continue;
+				}
+				$error = $newState === SettingsService::VALUE_ENABLED
+					? $this->applier->enableTodosPage($collectiveId)
+					: $this->applier->disableTodosPage($collectiveId);
+				if ($error !== null) {
+					$applyErrors[] = 'Collective ' . $collectiveId . ': ' . $error;
+				}
+			}
+		}
+
 		if ($applyErrors !== []) {
 			return new TemplateResponse('collectives_todos', 'admin', $this->panelData->getPanelData([], $applyErrors));
 		}

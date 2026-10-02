@@ -36,7 +36,7 @@ class PanelDataService
 	 * @return array{
 	 *   form_action: string,
 	 *   errors: list<string>,
-	 *   defaults: array{todos_page_name: string, tree_position: string, max_checkboxes: int},
+	 *   defaults: array{todos_page_name: string, todos_page_emoji: string, tree_position: string, max_checkboxes: int, enabled: bool},
 	 *   positions: array<string, string>,
 	 *   collectives: list<array{id: int, name: string, todos_page_name: string, todos_page_emoji: string, tree_position: string, max_checkboxes: string, enabled: bool}>,
 	 * }
@@ -102,6 +102,7 @@ class PanelDataService
 				'todos_page_emoji' => $defaults[SettingsService::KEY_TODOS_PAGE_EMOJI],
 				'tree_position' => $defaults[SettingsService::KEY_TREE_POSITION],
 				'max_checkboxes' => (int)$defaults[SettingsService::KEY_MAX_CHECKBOXES],
+				'enabled' => $this->settings->isEnabled(null),
 			],
 			'positions' => [
 				SettingsService::POSITION_TOP => 'Always on top',

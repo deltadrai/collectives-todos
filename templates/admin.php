@@ -74,6 +74,18 @@
                    value="<?php p($defaults['max_checkboxes']); ?>">
         </div>
 
+        <div class="field">
+            <label><?php p('Todos page management'); ?></label>
+            <?php if ($defaults['enabled']): ?>
+                <button type="submit" name="toggle_default_enabled" value="1"
+                        class="button"><?php p('Disable'); ?></button>
+            <?php else: ?>
+                <button type="submit" name="toggle_default_enabled" value="1"
+                        class="button primary"><?php p('Enable'); ?></button>
+            <?php endif; ?>
+            <p class="settings-hint"><?php p('Collectives with their own Enable/Disable override keep their state.'); ?></p>
+        </div>
+
         <h3><?php p('Per-collective overrides'); ?></h3>
         <p class="settings-hint"><?php p('Empty fields use the defaults. Disabled collectives get no Todos page.'); ?></p>
 

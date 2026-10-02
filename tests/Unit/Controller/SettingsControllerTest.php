@@ -486,4 +486,114 @@ class SettingsControllerTest extends TestCase
 		$this->assertInstanceOf(TemplateResponse::class, $response);
 		$this->assertSame($expectedParams, $response->getParams());
 	}
+
+	public function testToggleDefaultDisablesCollectivesWithoutOverride(): void
+	{
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'toggle_default_enabled' => '1',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+			$this->collective(7),
+		]);
+
+		$setDefaultCalls = [];
+		$this->settings->method('setDefault')->willReturnCallback(
+			static function (string $key, string $value) use (&$setDefaultCalls): void {
+				$setDefaultCalls[] = [$key, $value];
+			}
+		);
+		$disabled = [];
+		$this->applier->method('disableTodosPage')->willReturnCallback(
+			static function (int $collectiveId) use (&$disabled): ?string {
+				$disabled[] = $collectiveId;
+				return null;
+			}
+		);
+		$this->applier->expects($this->never())->method('enableTodosPage');
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(RedirectResponse::class, $response);
+		// The regular save also writes the form defaults; the toggle adds
+		// exactly one enabled-key write
+		$this->assertSame(
+			[[SettingsService::KEY_ENABLED, SettingsService::VALUE_DISABLED]],
+			array_values(array_filter($setDefaultCalls, fn (array $call) => $call[0] === SettingsService::KEY_ENABLED))
+		);
+		$this->assertSame([6, 7], $disabled);
+	}
+
+	public function testToggleDefaultSkipsCollectivesWithOverride(): void
+	{
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'toggle_default_enabled' => '1',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+			$this->collective(7),
+		]);
+		// Collective 6 keeps its own enabled state when the default flips
+		$this->settings->method('getOverride')->willReturnCallback(
+			static fn (int $collectiveId, string $key) => $collectiveId === 6 && $key === SettingsService::KEY_ENABLED
+				? SettingsService::VALUE_ENABLED
+				: null
+		);
+
+		$disabled = [];
+		$this->applier->method('disableTodosPage')->willReturnCallback(
+			static function (int $collectiveId) use (&$disabled): ?string {
+				$disabled[] = $collectiveId;
+				return null;
+			}
+		);
+
+		$this->controller->save();
+
+		$this->assertSame([7], $disabled);
+	}
+
+	public function testToggleDefaultEnablesWhenDefaultDisabled(): void
+	{
+		$this->enabled = false;
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'toggle_default_enabled' => '1',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+		]);
+
+		$setDefaultCalls = [];
+		$this->settings->method('setDefault')->willReturnCallback(
+			static function (string $key, string $value) use (&$setDefaultCalls): void {
+				$setDefaultCalls[] = [$key, $value];
+			}
+		);
+		$enabledCollectives = [];
+		$this->applier->method('enableTodosPage')->willReturnCallback(
+			static function (int $collectiveId) use (&$enabledCollectives): ?string {
+				$enabledCollectives[] = $collectiveId;
+				return null;
+			}
+		);
+		$this->applier->expects($this->never())->method('disableTodosPage');
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(RedirectResponse::class, $response);
+		$this->assertSame(
+			[[SettingsService::KEY_ENABLED, SettingsService::VALUE_ENABLED]],
+			array_values(array_filter($setDefaultCalls, fn (array $call) => $call[0] === SettingsService::KEY_ENABLED))
+		);
+		$this->assertSame([6], $enabledCollectives);
+	}
 }

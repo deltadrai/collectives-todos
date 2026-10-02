@@ -222,11 +222,11 @@ class SettingsServiceTest extends TestCase
 		$stored = '';
 		$this->config->method('getAppValue')
 			->willReturnCallback(static function (string $app, string $key, string $default = '') use (&$stored): string {
-				return $key === 'collective.8.enabled' ? $stored : $default;
+				return $key === 'collective.8.todos_page_enabled' ? $stored : $default;
 			});
 		$this->config->method('setAppValue')
 			->willReturnCallback(static function (string $app, string $key, string $value) use (&$stored): void {
-				if ($key === 'collective.8.enabled') {
+				if ($key === 'collective.8.todos_page_enabled') {
 					$stored = $value;
 				}
 			});
@@ -245,5 +245,13 @@ class SettingsServiceTest extends TestCase
 	{
 		$this->expectException(\InvalidArgumentException::class);
 		SettingsService::normalizeEnabled('yes');
+	}
+
+	public function testEnabledKeyDoesNotCollideWithAppFlag(): void
+	{
+		// Nextcloud stores the app's own enable state under the 'enabled'
+		// key of the same appconfig namespace - writing our default there
+		// would disable the whole app
+		$this->assertNotSame('enabled', SettingsService::KEY_ENABLED);
 	}
 }

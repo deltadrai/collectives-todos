@@ -105,13 +105,11 @@ class SettingsApplierService
 	{
 		try {
 			$this->settings->setOverride($collectiveId, SettingsService::KEY_ENABLED, SettingsService::VALUE_ENABLED);
-			$collectiveFolder = $this->aggregator->getFolder((string)$collectiveId);
-			$this->todosPageGenerator->regenerateTodosPage($collectiveFolder);
 		} catch (\Throwable $e) {
 			$this->logger->warning('collectives_todos: could not enable collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
 			return 'Could not enable the Todos page: ' . $e->getMessage();
 		}
-		return null;
+		return $this->enableTodosPage($collectiveId);
 	}
 
 	/**
@@ -126,14 +124,50 @@ class SettingsApplierService
 	{
 		try {
 			$this->settings->setOverride($collectiveId, SettingsService::KEY_ENABLED, SettingsService::VALUE_DISABLED);
+		} catch (\Throwable $e) {
+			$this->logger->warning('collectives_todos: could not disable collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
+			return 'Could not disable the Todos page: ' . $e->getMessage();
+		}
+		return $this->disableTodosPage($collectiveId);
+	}
+
+	/**
+	 * Side effects of a collective becoming enabled: generate its Todos
+	 * page. The enabled config must already be written.
+	 *
+	 * @return string|null Error message, or null on success
+	 */
+	public function enableTodosPage(int $collectiveId): ?string
+	{
+		try {
+			$collectiveFolder = $this->aggregator->getFolder((string)$collectiveId);
+			$this->todosPageGenerator->regenerateTodosPage($collectiveFolder);
+		} catch (\Throwable $e) {
+			$this->logger->warning('collectives_todos: could not generate the Todos page of collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
+			return 'Could not generate the Todos page: ' . $e->getMessage();
+		}
+		return null;
+	}
+
+	/**
+	 * Side effects of a collective becoming disabled: delete its Todos
+	 * page (Collectives moves it to trash). The disabled config must
+	 * already be written, so the delete event's listeners do not recreate
+	 * the page.
+	 *
+	 * @return string|null Error message, or null on success
+	 */
+	public function disableTodosPage(int $collectiveId): ?string
+	{
+		try {
 			$collectiveFolder = $this->aggregator->getFolder((string)$collectiveId);
 			$todosFilename = $this->settings->resolveTodosPageFilename($collectiveId);
 			if ($collectiveFolder->nodeExists($todosFilename)) {
 				$collectiveFolder->get($todosFilename)->delete();
 			}
 		} catch (\Throwable $e) {
-			$this->logger->warning('collectives_todos: could not disable collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
-			return 'Could not disable the Todos page: ' . $e->getMessage();
+			$this->logger->warning('collectives_todos: could not delete the Todos page of collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
+			return 'Could not delete the Todos page: ' . $e->getMessage();
 		}
 		return null;
 	}

@@ -72,6 +72,7 @@ class PanelDataServiceTest extends TestCase
 		$this->assertSame('', $data['defaults']['todos_page_emoji']);
 		$this->assertSame('top', $data['defaults']['tree_position']);
 		$this->assertSame(0, $data['defaults']['max_checkboxes']);
+		$this->assertTrue($data['defaults']['enabled']);
 		$this->assertSame(['top' => 'Always on top', 'bottom' => 'Always on bottom', 'alphabetical' => 'Alphabetically'], $data['positions']);
 
 		// trashed collective excluded, remaining sorted by name
@@ -98,6 +99,16 @@ class PanelDataServiceTest extends TestCase
 		$data = $this->service->getPanelData();
 
 		$this->assertFalse($data['collectives'][0]['enabled']);
+	}
+
+	public function testDisabledDefaultExposed(): void
+	{
+		$this->enabled = false;
+		$this->collectiveMapper->method('getAll')->willReturn([]);
+
+		$data = $this->service->getPanelData();
+
+		$this->assertFalse($data['defaults']['enabled']);
 	}
 
 	public function testOverridesPrefilled(): void

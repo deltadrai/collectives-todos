@@ -12,7 +12,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Per-collective Enable/Disable button in the settings page's per-collective table. Disabling
   deletes the collective's Todos page (to trash) and stops generating or reverse-syncing it; the
   checkbox cache keeps being maintained, so enabling regenerates a consistent page immediately.
-  Enabled is the default; there is no instance-wide toggle.
+  Enabled is the default.
+- Global Enable/Disable button in the settings page's Defaults section: flips the instance-wide
+  default for all collectives without their own enabled override (an override keeps winning over the
+  default, like for every other config item).
 
 ### Fixed
 
