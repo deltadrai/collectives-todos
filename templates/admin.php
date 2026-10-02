@@ -15,6 +15,10 @@
     #collectives-todos-settings table.grid th, #collectives-todos-settings table.grid td { padding: 4px 8px; text-align: left; }
     #collectives-todos-settings .emoji-input { display: inline-flex; align-items: center; gap: 4px; }
     #collectives-todos-settings .emoji-input input { width: 5em; text-align: center; }
+    #collectives-todos-settings .toggle-line { display: flex; align-items: center; gap: 8px; }
+    #collectives-todos-settings .status { display: inline-block; min-width: 110px; padding: 3px 10px; border-radius: var(--border-radius-pill, 999px); font-size: 12px; text-align: center; }
+    #collectives-todos-settings .status-on { background: var(--color-success, #46ba61); color: var(--color-primary-text, #fff); }
+    #collectives-todos-settings .status-off { background: var(--color-background-dark, #ededed); color: var(--color-text-maxcontrast, #6b6b6b); }
     #collectives-todos-settings .button.primary { margin-top: 12px; }
     #collectives-todos-emoji-picker { position: fixed; z-index: 1000; display: grid; grid-template-columns: repeat(8, 32px); gap: 2px; padding: 8px; max-width: 308px;
         background: var(--color-main-background, #fff); border: 1px solid var(--color-border, #dbdbdb); border-radius: var(--border-radius-large, 4px);
@@ -76,14 +80,18 @@
 
         <div class="field">
             <label><?php p('Todos page management'); ?></label>
-            <?php if ($defaults['enabled']): ?>
-                <button type="submit" name="toggle_default_enabled" value="1"
-                        class="button"><?php p('Disable'); ?></button>
-            <?php else: ?>
-                <button type="submit" name="toggle_default_enabled" value="1"
-                        class="button primary"><?php p('Enable'); ?></button>
-            <?php endif; ?>
-            <p class="settings-hint"><?php p('Enabling resets every collective to enabled. Disabling a single collective is the manual choice in the table below.'); ?></p>
+            <div class="toggle-line">
+                <?php if ($defaults['enabled']): ?>
+                    <span class="status status-on"><?php p('Enabled'); ?></span>
+                    <button type="submit" name="toggle_default_enabled" value="1"
+                            class="button"><?php p('Disable'); ?></button>
+                <?php else: ?>
+                    <span class="status status-off"><?php p('Disabled'); ?></span>
+                    <button type="submit" name="toggle_default_enabled" value="1"
+                            class="button primary"><?php p('Enable'); ?></button>
+                <?php endif; ?>
+            </div>
+            <p class="settings-hint"><?php p('Enabling resets every collective to enabled and clears manual opt-outs. Opt-outs persist while the default is disabled.'); ?></p>
         </div>
 
         <h3><?php p('Per-collective overrides'); ?></h3>
@@ -105,16 +113,22 @@
                 <tr>
                     <td><?php p($collective['name']); ?></td>
                     <td>
-                        <?php if ($collective['enabled']): ?>
-                            <button type="submit" name="toggle_enabled" value="<?php p($collective['id']); ?>"
-                                    class="button"><?php p('Disable'); ?></button>
-                        <?php elseif ($defaults['enabled']): ?>
-                            <button type="submit" name="toggle_enabled" value="<?php p($collective['id']); ?>"
-                                    class="button primary"><?php p('Enable'); ?></button>
-                        <?php else: ?>
-                            <button type="button" class="button primary" disabled
-                                   title="<?php p('The Todos page management is globally disabled'); ?>"><?php p('Enable'); ?></button>
-                        <?php endif; ?>
+                        <div class="toggle-line">
+                            <?php if ($collective['enabled']): ?>
+                                <span class="status status-on"><?php p('Enabled'); ?></span>
+                                <button type="submit" name="toggle_enabled" value="<?php p($collective['id']); ?>"
+                                        class="button"><?php p('Disable'); ?></button>
+                            <?php else: ?>
+                                <span class="status status-off"><?php p($collective['enabled_opt_out'] ? 'Disabled (opt-out)' : 'Disabled (global)'); ?></span>
+                                <?php if ($defaults['enabled'] && $collective['enabled_opt_out']): ?>
+                                    <button type="submit" name="toggle_enabled" value="<?php p($collective['id']); ?>"
+                                            class="button primary"><?php p('Enable'); ?></button>
+                                <?php else: ?>
+                                    <button type="button" class="button primary" disabled
+                                           title="<?php p('The Todos page management is globally disabled'); ?>"><?php p('Enable'); ?></button>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td>
                         <input type="text" name="override[<?php p($collective['id']); ?>][todos_page_name]"

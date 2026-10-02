@@ -38,7 +38,7 @@ class PanelDataService
 	 *   errors: list<string>,
 	 *   defaults: array{todos_page_name: string, todos_page_emoji: string, tree_position: string, max_checkboxes: int, enabled: bool},
 	 *   positions: array<string, string>,
-	 *   collectives: list<array{id: int, name: string, todos_page_name: string, todos_page_emoji: string, tree_position: string, max_checkboxes: string, enabled: bool}>,
+	 *   collectives: list<array{id: int, name: string, todos_page_name: string, todos_page_emoji: string, tree_position: string, max_checkboxes: string, enabled: bool, enabled_opt_out: bool}>,
 	 * }
 	 */
 	public function getPanelData(array $submitted = [], array $errors = []): array
@@ -89,6 +89,9 @@ class PanelDataService
 				'tree_position' => $override['tree_position'],
 				'max_checkboxes' => $override['max_checkboxes'],
 				'enabled' => $this->settings->isEnabled($collectiveId),
+				// A manual opt-out is shown next to the state, so the user
+				// can tell it apart from following a disabled default
+				'enabled_opt_out' => $this->settings->getOverride($collectiveId, SettingsService::KEY_ENABLED) !== null,
 			];
 		}
 
