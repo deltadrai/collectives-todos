@@ -9,6 +9,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- App store release packaging: a GitHub Action (`.github/workflows/release.yml`) builds a
+  store-conformant `collectives_todos-vX.Y.Z.tar.gz` (single top-level folder named after the app
+  id, dev files excluded) on every `v*` tag and attaches it to the GitHub release. Tag and app
+  version must match, and `appinfo/info.xml` is validated against the app store schema.
+
+### Changed
+
+- Version reset from 1.0.0 to 0.1.0.
+- `appinfo/info.xml` brought into the form the Nextcloud app store validates: added the required
+  `<summary>`, renamed `<license>` to `<licence>` and `<depends>` to `<dependencies>`, and dropped
+  the `<app>collectives</app>` element (not part of the store or server schema, so it was never
+  read; the Collectives dependency is enforced at runtime via `IAppManager`). No runtime behavior
+  changes on servers already running the app.
+
+### Added
+
 - Per-collective Enable/Disable button in the settings page's per-collective table. Disabling
   deletes the collective's Todos page (to trash) and stops generating or reverse-syncing it; the
   checkbox cache keeps being maintained, so enabling regenerates a consistent page immediately.
@@ -126,7 +142,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `collectives_todos:init` now scans all pages of a collectives and accepts the collectives id as
   used by the Collectives app.
 
-## [1.0.0] - 2026-10-01
+## [0.1.0] - 2026-10-01
 
 ### Added
 
