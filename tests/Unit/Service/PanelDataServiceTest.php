@@ -101,30 +101,6 @@ class PanelDataServiceTest extends TestCase
 		$this->assertFalse($data['collectives'][0]['enabled']);
 	}
 
-	public function testEnabledOptOutExposed(): void
-	{
-		$this->enabled = false;
-		$this->collectiveMapper->method('getAll')->willReturn([
-			$this->collective(8),
-			$this->collective(9),
-		]);
-		$this->wireCollectiveNames([8 => 'Anton', 9 => 'Zebra']);
-		// Collective 8 is manually disabled, collective 9 only follows
-		// the globally disabled default
-		$this->settings->method('getOverride')->willReturnCallback(
-			fn (int $collectiveId, string $key) => $collectiveId === 8 && $key === SettingsService::KEY_ENABLED
-				? SettingsService::VALUE_DISABLED
-				: null
-		);
-
-		$data = $this->service->getPanelData();
-
-		$this->assertFalse($data['collectives'][0]['enabled']);
-		$this->assertTrue($data['collectives'][0]['enabled_opt_out']);
-		$this->assertFalse($data['collectives'][1]['enabled']);
-		$this->assertFalse($data['collectives'][1]['enabled_opt_out']);
-	}
-
 	public function testDisabledDefaultExposed(): void
 	{
 		$this->enabled = false;

@@ -25,9 +25,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   disabled. Deleting the Todos page on disable now also removes its `collectives_pages` row (the
   delete is a hard delete on the appdata path, which the Collectives trash does not handle; the
   managed page's content is fully derived, so nothing of value is lost).
-- The settings page shows the resolved enabled state next to every toggle (`Enabled`,
-  `Disabled (opt-out)` or `Disabled (global)`): the button carries the action, the badge the state,
-  so a row with a `Disable` button no longer reads as a disabled collective.
 
 ### Fixed
 
