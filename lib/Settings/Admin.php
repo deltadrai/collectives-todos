@@ -19,7 +19,11 @@ class Admin implements IDelegatedSettings
 
 	public function getForm(): TemplateResponse
 	{
-		\OCP\Util::addScript('collectives_todos', 'admin-picker');
+		// Registers the script tag with a CSP nonce; needs the server
+		// runtime (skipped in unit tests, which boot no \OC)
+		if (class_exists(\OC::class)) {
+			\OCP\Util::addScript('collectives_todos', 'admin-picker');
+		}
 		return new TemplateResponse('collectives_todos', 'admin', $this->panelData->getPanelData());
 	}
 
