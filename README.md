@@ -54,18 +54,33 @@ alternatively a folder file id or a folder path works.
 
 ## Configuration
 
-### Maximum Checkboxes per Collective
+Configure the app under Settings → Admin → Collectives Todos. Every config item has an instance-wide
+default and can be overridden per collective (an empty field uses the default):
 
-To prevent cache files from becoming too large, you can set a limit:
+| Config item        | Meaning                                                           | Default       |
+| ------------------ | ----------------------------------------------------------------- | ------------- |
+| Todos page name    | Name of the generated page (without `.md`)                        | `Todos`       |
+| Tree position      | Position of the Todos page in the Collectives page tree           | always on top |
+| Maximum checkboxes | Cap on the total cached checkboxes per collective (0 = unlimited) | `0`           |
 
-1. Go to Settings → Admin → Collectives Todos
-2. Set "Maximum Checkboxes" to your desired limit (0 = unlimited)
+- **Tree position**: `always on top` pins the Todos page to the top of the page tree,
+  `always on bottom` to the bottom, `alphabetically` sorts it by title among the unpinned pages. The
+  position is enforced by writing the Collectives `subpage_order` of the landing page and
+  re-asserted on every Todos page regeneration; after dragging pages around in the browser, the next
+  page save in that collective re-asserts it. An already-open Collectives tab shows the new order
+  after a reload.
+- **Todos page name**: changing the name renames the existing Todos page file. If a page with the
+  new name already exists in a collective, the rename is skipped and reported on the settings page.
+- **Maximum checkboxes**: once the limit is reached, further checkboxes are not cached and the Todos
+  page shows a `*(list truncated by the settings limit)*` note under the affected page's section.
 
 ## Data Storage
 
 - Cache: `.collective/todos.json` in each collectives folder
-- Generated page: `Todos.md` in each collectives folder
-- All data is stored within the collectives and is backed up with the collectives
+- Generated page: the configured Todos page (default `Todos.md`) in each collectives folder
+- Settings: `oc_appconfig` (app `collectives_todos`), defaults as plain keys and per-collective
+  overrides as `collective.<id>.<key>`
+- All other data is stored within the collectives and is backed up with the collectives
 
 ## Limitations
 

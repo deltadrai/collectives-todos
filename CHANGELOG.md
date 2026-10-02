@@ -9,6 +9,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Admin settings page (Settings → Admin → Collectives Todos) with instance-wide defaults and
+  per-collective overrides for three config items: the Todos page name (default `Todos`), the
+  position of the Todos page in the Collectives page tree (always on top / always on bottom /
+  alphabetically, default always on top) and the maximum number of cached checkboxes per collective
+  (0 = unlimited, default 0). An empty override field uses the default. Invalid input is rejected
+  without storing anything.
+- The tree position is enforced by writing the landing page's `collectives_pages.subpage_order` (the
+  Collectives frontend sorts listed pages by array order, unlisted pages alphabetically), on every
+  Todos page regeneration and on settings save. Manual ordering of the other pages is preserved; an
+  already-open Collectives tab needs a reload to pick up the new order.
+- Changing the Todos page name renames the existing Todos page file; if a page with the new name
+  already exists in a collective, the rename is skipped and reported on the settings page.
+- When the checkbox limit is reached, further checkboxes are not cached and the Todos page renders a
+  `*(list truncated by the settings limit)*` note under the affected page's section.
+- Minimum Nextcloud version raised from 25 to 27 (the admin settings controller uses the
+  `AuthorizedAdminSetting` attribute introduced in 27).
+
+### Added
+
 - Bidirectional checkbox sync: ticking or unticking a checkbox on the Todos page now also updates
   the checkbox on the source page it was aggregated from. Sections of the Todos page are resolved to
   source pages by the page file id in the heading link URL (title as fallback), and checkboxes are
