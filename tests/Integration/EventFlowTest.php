@@ -58,7 +58,8 @@ class EventFlowTest extends TestCase
             $this->aggregator,
             new PageLinkBuilder($collectiveMapper, $pageMapper),
             new TextDocumentResetter($logger),
-            $settings
+            $settings,
+            new \OCA\CollectiveTodos\Service\PageOrderingService($pageMapper, $settings)
         );
     }
 
@@ -180,7 +181,8 @@ class EventFlowTest extends TestCase
             $aggregator,
             new PageLinkBuilder($collectiveMapper, $pageMapper),
             new TextDocumentResetter($logger),
-            new \OCA\CollectiveTodos\Service\SettingsService($config)
+            new \OCA\CollectiveTodos\Service\SettingsService($config),
+            new \OCA\CollectiveTodos\Service\PageOrderingService($pageMapper, new \OCA\CollectiveTodos\Service\SettingsService($config))
         );
         $textResetter = new TextDocumentResetter($logger);
         $reverseSync = new TodosReverseSyncService($parser, $aggregator, $this->rootFolder, $textResetter, $logger);

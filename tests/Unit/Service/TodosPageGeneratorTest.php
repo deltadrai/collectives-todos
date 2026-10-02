@@ -7,6 +7,7 @@ namespace OCA\CollectiveTodos\Tests\Unit\Service;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
 use OCA\CollectiveTodos\Service\PageLinkBuilder;
+use OCA\CollectiveTodos\Service\PageOrderingService;
 use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TextDocumentResetter;
 use OCP\Files\File;
@@ -19,6 +20,7 @@ class TodosPageGeneratorTest extends TestCase
     private CheckboxAggregator $aggregator;
     private PageLinkBuilder $linkBuilder;
     private SettingsService $settings;
+    private PageOrderingService $ordering;
     private TextDocumentResetter $textResetter;
     private Folder $collectiveFolder;
     private string $todosFilename = 'Todos.md';
@@ -28,6 +30,7 @@ class TodosPageGeneratorTest extends TestCase
         $this->aggregator = $this->createMock(CheckboxAggregator::class);
         $this->linkBuilder = $this->createMock(PageLinkBuilder::class);
         $this->settings = $this->createMock(SettingsService::class);
+        $this->ordering = $this->createMock(PageOrderingService::class);
         $this->textResetter = $this->createMock(TextDocumentResetter::class);
         $this->collectiveFolder = $this->createMock(Folder::class);
 
@@ -38,7 +41,8 @@ class TodosPageGeneratorTest extends TestCase
             $this->aggregator,
             $this->linkBuilder,
             $this->textResetter,
-            $this->settings
+            $this->settings,
+            $this->ordering
         );
     }
 
@@ -415,5 +419,37 @@ class TodosPageGeneratorTest extends TestCase
         $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
 
         $this->assertStringContainsString("- [ ] Prepare agenda\n*(list truncated by the settings limit)*", $content);
+    }
+
+    public function testRegenerateEnforcesPosition(): void
+    {
+        $this->aggregator->method('getAllCheckboxes')->willReturn([]);
+        $this->aggregator->method('getCollectiveId')->willReturn(6);
+        $this->collectiveFolder->method('nodeExists')->willReturn(false);
+        $createdFile = $this->createMock(File::class);
+        $createdFile->method('getId')->willReturn(4149);
+        $this->collectiveFolder->method('newFile')->willReturn($createdFile);
+
+        $this->ordering->expects($this->once())
+            ->method('enforcePosition')
+            ->with($this->collectiveFolder, 6);
+
+        $this->generator->regenerateTodosPage($this->collectiveFolder);
+    }
+
+    public function testRegenerateEnforcesPositionWithNullCollectiveId(): void
+    {
+        $this->aggregator->method('getAllCheckboxes')->willReturn([]);
+        $this->aggregator->method('getCollectiveId')->willReturn(null);
+        $this->collectiveFolder->method('nodeExists')->willReturn(false);
+        $createdFile = $this->createMock(File::class);
+        $createdFile->method('getId')->willReturn(4149);
+        $this->collectiveFolder->method('newFile')->willReturn($createdFile);
+
+        $this->ordering->expects($this->once())
+            ->method('enforcePosition')
+            ->with($this->collectiveFolder, null);
+
+        $this->generator->regenerateTodosPage($this->collectiveFolder);
     }
 }
