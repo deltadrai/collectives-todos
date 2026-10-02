@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\CollectiveTodos\Tests\Unit\Service;
 
+use OCA\Collectives\Db\PageMapper;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
 use OCA\CollectiveTodos\Service\PageEmojiService;
 use OCA\CollectiveTodos\Service\PageOrderingService;
@@ -23,6 +24,7 @@ class SettingsApplierServiceTest extends TestCase
 	private SettingsService $settings;
 	private PageOrderingService $ordering;
 	private PageEmojiService $emojiService;
+	private PageMapper $pageMapper;
 	private LoggerInterface $logger;
 	private SettingsApplierService $service;
 	private Folder $collectiveFolder;
@@ -36,8 +38,10 @@ class SettingsApplierServiceTest extends TestCase
 		$this->settings = $this->createMock(SettingsService::class);
 		$this->ordering = $this->createMock(PageOrderingService::class);
 		$this->emojiService = $this->createMock(PageEmojiService::class);
+		$this->pageMapper = $this->getMockBuilder(PageMapper::class)
+			->disableOriginalConstructor()->getMock();
 		$this->logger = $this->createMock(LoggerInterface::class);
-		$this->service = new SettingsApplierService($this->aggregator, $this->todosPageGenerator, $this->settings, $this->ordering, $this->emojiService, $this->logger);
+		$this->service = new SettingsApplierService($this->aggregator, $this->todosPageGenerator, $this->settings, $this->ordering, $this->emojiService, $this->pageMapper, $this->logger);
 		$this->collectiveFolder = $this->createMock(Folder::class);
 
 		$this->settings->method('resolveTodosPageFilename')
@@ -197,14 +201,17 @@ class SettingsApplierServiceTest extends TestCase
 		$this->assertNull($this->service->applyToCollective(8, 'Todos.md'));
 	}
 
-	public function testEnableCollectiveWritesFlagAndRegenerates(): void
+	public function testEnableCollectiveClearsOverrideAndRegenerates(): void
 	{
 		$folder = $this->collectiveFolder;
 		$this->aggregator->method('getFolder')->willReturn($folder);
 
+		// No sticky enabled override is written - it would shield the
+		// collective from the global default toggle forever
+		$this->settings->expects($this->never())->method('setOverride');
 		$this->settings->expects($this->once())
-			->method('setOverride')
-			->with(8, SettingsService::KEY_ENABLED, SettingsService::VALUE_ENABLED);
+			->method('clearOverride')
+			->with(8, SettingsService::KEY_ENABLED);
 		$this->todosPageGenerator->expects($this->once())
 			->method('regenerateTodosPage')
 			->with($folder);
@@ -216,6 +223,7 @@ class SettingsApplierServiceTest extends TestCase
 	{
 		$calls = [];
 		$file = $this->createMock(File::class);
+		$file->method('getId')->willReturn(4149);
 		$file->method('delete')->willReturnCallback(static function () use (&$calls): void {
 			$calls[] = 'delete';
 		});
@@ -229,6 +237,9 @@ class SettingsApplierServiceTest extends TestCase
 				$calls[] = 'setOverride:' . $key . '=' . $value;
 			}
 		);
+		$this->pageMapper->expects($this->once())
+			->method('deleteByFileId')
+			->with(4149);
 
 		$this->assertNull($this->service->disableCollective(8));
 
@@ -249,6 +260,7 @@ class SettingsApplierServiceTest extends TestCase
 			->method('setOverride')
 			->with(8, SettingsService::KEY_ENABLED, SettingsService::VALUE_DISABLED);
 		$this->collectiveFolder->expects($this->never())->method('get');
+		$this->pageMapper->expects($this->never())->method('deleteByFileId');
 
 		$this->assertNull($this->service->disableCollective(8));
 	}
@@ -262,6 +274,9 @@ class SettingsApplierServiceTest extends TestCase
 			fn (string $name) => $file
 		);
 
+		// The page row is only removed after a successful file delete
+		$this->pageMapper->expects($this->never())->method('deleteByFileId');
+
 		$error = $this->service->disableCollective(8);
 
 		$this->assertNotNull($error);
@@ -274,6 +289,7 @@ class SettingsApplierServiceTest extends TestCase
 		$this->aggregator->method('getFolder')->willReturn($folder);
 
 		$this->settings->expects($this->never())->method('setOverride');
+		$this->settings->expects($this->never())->method('clearOverride');
 		$this->todosPageGenerator->expects($this->once())
 			->method('regenerateTodosPage')
 			->with($folder);
@@ -285,6 +301,7 @@ class SettingsApplierServiceTest extends TestCase
 	{
 		$calls = [];
 		$file = $this->createMock(File::class);
+		$file->method('getId')->willReturn(4150);
 		$file->method('delete')->willReturnCallback(static function () use (&$calls): void {
 			$calls[] = 'delete';
 		});
@@ -294,6 +311,9 @@ class SettingsApplierServiceTest extends TestCase
 		);
 
 		$this->settings->expects($this->never())->method('setOverride');
+		$this->pageMapper->expects($this->once())
+			->method('deleteByFileId')
+			->with(4150);
 
 		$this->assertNull($this->service->disableTodosPage(8));
 

@@ -108,9 +108,12 @@
                         <?php if ($collective['enabled']): ?>
                             <button type="submit" name="toggle_enabled" value="<?php p($collective['id']); ?>"
                                     class="button"><?php p('Disable'); ?></button>
-                        <?php else: ?>
+                        <?php elseif ($defaults['enabled']): ?>
                             <button type="submit" name="toggle_enabled" value="<?php p($collective['id']); ?>"
                                     class="button primary"><?php p('Enable'); ?></button>
+                        <?php else: ?>
+                            <button type="button" class="button primary" disabled
+                                   title="<?php p('The Todos page management is globally disabled'); ?>"><?php p('Enable'); ?></button>
                         <?php endif; ?>
                     </td>
                     <td>

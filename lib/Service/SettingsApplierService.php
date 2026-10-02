@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\CollectiveTodos\Service;
 
+use OCA\Collectives\Db\PageMapper;
 use OCP\Files\Folder;
 use Psr\Log\LoggerInterface;
 
@@ -23,6 +24,7 @@ class SettingsApplierService
 	private SettingsService $settings;
 	private PageOrderingService $ordering;
 	private PageEmojiService $emojiService;
+	private PageMapper $pageMapper;
 	private LoggerInterface $logger;
 
 	public function __construct(
@@ -31,6 +33,7 @@ class SettingsApplierService
 		SettingsService $settings,
 		PageOrderingService $ordering,
 		PageEmojiService $emojiService,
+		PageMapper $pageMapper,
 		LoggerInterface $logger
 	) {
 		$this->aggregator = $aggregator;
@@ -38,6 +41,7 @@ class SettingsApplierService
 		$this->settings = $settings;
 		$this->ordering = $ordering;
 		$this->emojiService = $emojiService;
+		$this->pageMapper = $pageMapper;
 		$this->logger = $logger;
 	}
 
@@ -95,16 +99,23 @@ class SettingsApplierService
 	}
 
 	/**
-	 * Enable the Todos page management for a collective and generate the
-	 * Todos page right away. The checkbox cache kept being maintained while
-	 * the collective was disabled, so the page is consistent immediately.
+	 * Enable the Todos page management for a collective: clear its enabled
+	 * override so it follows the instance-wide default again, and generate
+	 * the Todos page if the default is enabled. The checkbox cache kept
+	 * being maintained while the collective was disabled, so the page is
+	 * consistent immediately.
+	 *
+	 * A sticky enabled override is deliberately not written: it would
+	 * shield the collective from the global default toggle forever.
+	 * When the default is disabled, this is a no-op (the regeneration is
+	 * gated), so the settings page renders the Enable button as disabled.
 	 *
 	 * @return string|null Error message, or null on success
 	 */
 	public function enableCollective(int $collectiveId): ?string
 	{
 		try {
-			$this->settings->setOverride($collectiveId, SettingsService::KEY_ENABLED, SettingsService::VALUE_ENABLED);
+			$this->settings->clearOverride($collectiveId, SettingsService::KEY_ENABLED);
 		} catch (\Throwable $e) {
 			$this->logger->warning('collectives_todos: could not enable collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
 			return 'Could not enable the Todos page: ' . $e->getMessage();
@@ -114,9 +125,9 @@ class SettingsApplierService
 
 	/**
 	 * Disable the Todos page management for a collective and delete its
-	 * Todos page (Collectives moves it to trash). The disabled flag is
-	 * written first so the delete event's listeners already see the
-	 * collective as disabled and do not recreate the page.
+	 * Todos page. The disabled flag is written first so the delete event's
+	 * listeners already see the collective as disabled and do not recreate
+	 * the page.
 	 *
 	 * @return string|null Error message, or null on success
 	 */
@@ -151,9 +162,17 @@ class SettingsApplierService
 
 	/**
 	 * Side effects of a collective becoming disabled: delete its Todos
-	 * page (Collectives moves it to trash). The disabled config must
-	 * already be written, so the delete event's listeners do not recreate
-	 * the page.
+	 * page and its collectives_pages row. The disabled config must already
+	 * be written, so the delete event's listeners do not recreate the
+	 * page.
+	 *
+	 * The page is hard-deleted, not moved to the Collectives trash: the
+	 * delete runs on the appdata path, which the Collectives trash backend
+	 * does not handle, and a managed page's content is fully derived from
+	 * the source pages anyway - a restored copy would only conflict with
+	 * the page regenerated on re-enable. The page row is removed like
+	 * Collectives does for direct page deletes, so no orphaned rows
+	 * remain.
 	 *
 	 * @return string|null Error message, or null on success
 	 */
@@ -163,7 +182,10 @@ class SettingsApplierService
 			$collectiveFolder = $this->aggregator->getFolder((string)$collectiveId);
 			$todosFilename = $this->settings->resolveTodosPageFilename($collectiveId);
 			if ($collectiveFolder->nodeExists($todosFilename)) {
-				$collectiveFolder->get($todosFilename)->delete();
+				$todosFile = $collectiveFolder->get($todosFilename);
+				$fileId = (int)$todosFile->getId();
+				$todosFile->delete();
+				$this->pageMapper->deleteByFileId($fileId);
 			}
 		} catch (\Throwable $e) {
 			$this->logger->warning('collectives_todos: could not delete the Todos page of collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);

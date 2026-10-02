@@ -79,11 +79,16 @@ default and can be overridden per collective (an empty field uses the default):
   position, manual emoji changes made in Collectives are re-asserted on the next page save.
 - **Maximum checkboxes**: once the limit is reached, further checkboxes are not cached and the Todos
   page shows a `*(list truncated by the settings limit)*` note under the affected page's section.
-- **Enabled**: the Defaults section has a global Enable/Disable button, the per-collective table one
-  per collective (a per-collective override wins over the global default). Disabling deletes the
-  affected Todos pages (to trash) and stops generating or reverse-syncing them; the checkbox cache
-  keeps being updated, so enabling regenerates a consistent page immediately. Collectives without
-  any checkboxes still get a Todos page showing "No tasks found in this collectives."
+- **Enabled**: the Defaults section has a global Enable/Disable button (the master switch), the
+  per-collective table one per collective. The global default applies to every collective; the
+  per-collective button only opts a collective out (Disable) or returns it to the default (Enable
+  clears the override) - a collective cannot be enabled while the default is disabled, the settings
+  page renders such Enable buttons as inactive. Disabling deletes the affected Todos page and its
+  page row (hard delete, not trash: the page is fully derived from the source pages, so a restored
+  copy would only conflict with the page regenerated on re-enable) and stops generating or
+  reverse-syncing it; the checkbox cache keeps being updated, so enabling regenerates a consistent
+  page immediately. Collectives without any checkboxes still get a Todos page showing "No tasks
+  found in this collectives."
 
 ## Data Storage
 

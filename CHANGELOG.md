@@ -16,6 +16,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Global Enable/Disable button in the settings page's Defaults section: flips the instance-wide
   default for all collectives without their own enabled override (an override keeps winning over the
   default, like for every other config item).
+- The per-collective Enable button clears the collective's enabled override instead of writing a
+  sticky enabled value: a sticky override would shield the collective from the global default toggle
+  forever, so a global disable reliably deletes every Todos page of collectives that were not
+  explicitly disabled. The per-row Enable buttons render as inactive while the global default is
+  disabled. Deleting the Todos page on disable now also removes its `collectives_pages` row (the
+  delete is a hard delete on the appdata path, which the Collectives trash does not handle; the
+  managed page's content is fully derived, so nothing of value is lost).
 
 ### Fixed
 
