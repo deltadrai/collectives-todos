@@ -16,13 +16,15 @@ A Nextcloud app that aggregates markdown checkboxes across all pages in a Collec
 
 ## Requirements
 
-- Nextcloud 25+
+- Nextcloud 27–34
 - Collectives app 2.0.0+
 - PHP 8.0+
 
 ## Installation
 
-The app is not published to the Nextcloud app store. Deploy it manually:
+The app is not yet published to the Nextcloud app store. Deploy it manually, or install the
+`collectives_todos-vX.Y.Z.tar.gz` archive attached to a GitHub release (built by
+`.github/workflows/release.yml` on every `v*` tag):
 
 1. Copy `apps/collectives_todos/` into the Nextcloud `apps/` directory (for this server: into the
    `systemd-nextcloud` container at `/var/www/html/apps/`)
