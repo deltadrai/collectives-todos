@@ -18,6 +18,10 @@
         <app>collectives</app>
     </depends>
     <category>office</category>
+    <settings>
+        <admin>OCA\CollectiveTodos\Settings\Admin</admin>
+        <admin-section>OCA\CollectiveTodos\Settings\Section</admin-section>
+    </settings>
     <website>TBD</website>
     <repository>TBD</repository>
     <bugs>TBD</bugs>
