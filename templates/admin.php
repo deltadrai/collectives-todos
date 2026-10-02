@@ -6,6 +6,16 @@
 /** @var string $form_action */
 /** @var list<string> $errors */
 ?>
+<style>
+    #collectives-todos-settings .field { margin-bottom: 12px; }
+    #collectives-todos-settings .field > label { display: block; margin-bottom: 4px; }
+    #collectives-todos-settings .radio-group { display: flex; flex-direction: column; gap: 4px; }
+    #collectives-todos-settings .radio-group label { display: inline-flex; align-items: center; gap: 6px; }
+    #collectives-todos-settings ul.error { color: var(--color-error, #d41010); }
+    #collectives-todos-settings table.grid th, #collectives-todos-settings table.grid td { padding: 4px 8px; text-align: left; }
+    #collectives-todos-settings .button.primary { margin-top: 12px; }
+</style>
+
 <div class="section" id="collectives-todos-settings">
     <?php if ($errors !== []): ?>
         <ul class="error">
@@ -21,22 +31,30 @@
         <h3><?php p('Defaults'); ?></h3>
         <p class="settings-hint"><?php p('Applies to every collective without its own override.'); ?></p>
 
-        <label for="default_todos_page_name"><?php p('Todos page name'); ?></label>
-        <input type="text" id="default_todos_page_name" name="default_todos_page_name"
-               value="<?php p($defaults['todos_page_name']); ?>">
+        <div class="field">
+            <label for="default_todos_page_name"><?php p('Todos page name'); ?></label>
+            <input type="text" id="default_todos_page_name" name="default_todos_page_name"
+                   value="<?php p($defaults['todos_page_name']); ?>">
+        </div>
 
-        <label><?php p('Position in the page tree'); ?></label>
-        <?php foreach ($positions as $value => $label): ?>
-            <label class="radio">
-                <input type="radio" name="default_tree_position" value="<?php p($value); ?>"
-                    <?php if ($defaults['tree_position'] === $value): ?> checked<?php endif; ?>>
-                <?php p($label); ?>
-            </label>
-        <?php endforeach; ?>
+        <div class="field">
+            <label><?php p('Position in the page tree'); ?></label>
+            <div class="radio-group">
+                <?php foreach ($positions as $value => $label): ?>
+                    <label>
+                        <input type="radio" name="default_tree_position" value="<?php p($value); ?>"
+                            <?php if ($defaults['tree_position'] === $value): ?> checked<?php endif; ?>>
+                        <?php p($label); ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
 
-        <label for="default_max_checkboxes"><?php p('Maximum checkboxes per collective (0 = unlimited)'); ?></label>
-        <input type="number" id="default_max_checkboxes" name="default_max_checkboxes" min="0"
-               value="<?php p($defaults['max_checkboxes']); ?>">
+        <div class="field">
+            <label for="default_max_checkboxes"><?php p('Maximum checkboxes per collective (0 = unlimited)'); ?></label>
+            <input type="number" id="default_max_checkboxes" name="default_max_checkboxes" min="0"
+                   value="<?php p($defaults['max_checkboxes']); ?>">
+        </div>
 
         <h3><?php p('Per-collective overrides'); ?></h3>
         <p class="settings-hint"><?php p('Empty fields use the defaults.'); ?></p>

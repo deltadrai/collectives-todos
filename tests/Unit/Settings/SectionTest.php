@@ -16,12 +16,15 @@ class SectionTest extends TestCase
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(fn (string $text) => $text);
 		$urlGenerator = $this->createMock(IURLGenerator::class);
+		$urlGenerator->method('imagePath')
+			->with('collectives_todos', 'app-dark.svg')
+			->willReturn('/apps/collectives_todos/img/app-dark.svg');
 
 		$section = new Section($urlGenerator, $l10n);
 
 		$this->assertSame('collectives_todos', $section->getID());
 		$this->assertSame('Collectives Todos', $section->getName());
 		$this->assertSame(80, $section->getPriority());
-		$this->assertSame('', $section->getIcon());
+		$this->assertSame('/apps/collectives_todos/img/app-dark.svg', $section->getIcon());
 	}
 }

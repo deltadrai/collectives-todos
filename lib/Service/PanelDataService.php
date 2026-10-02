@@ -78,7 +78,7 @@ class PanelDataService
 
 			$collectives[] = [
 				'id' => $collectiveId,
-				'name' => $collective->getName(),
+				'name' => $this->resolveCollectiveName($collectiveId),
 				'todos_page_name' => $override['todos_page_name'],
 				'tree_position' => $override['tree_position'],
 				'max_checkboxes' => $override['max_checkboxes'],
@@ -102,5 +102,19 @@ class PanelDataService
 			],
 			'collectives' => $collectives,
 		];
+	}
+
+	/**
+	 * The collectives table stores no names - they live in the Circles
+	 * app. Resolve through the Collectives mapper, falling back to the id
+	 * when the circle cannot be resolved.
+	 */
+	private function resolveCollectiveName(int $collectiveId): string
+	{
+		try {
+			return $this->collectiveMapper->idToName($collectiveId, null, true);
+		} catch (\Throwable $e) {
+			return 'Collective ' . $collectiveId;
+		}
 	}
 }

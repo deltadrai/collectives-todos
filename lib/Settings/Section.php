@@ -36,6 +36,6 @@ class Section implements IIconSection
 
 	public function getIcon()
 	{
-		return '';
+		return $this->urlGenerator->imagePath('collectives_todos', 'app-dark.svg');
 	}
 }

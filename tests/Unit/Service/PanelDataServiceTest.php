@@ -32,24 +32,32 @@ class PanelDataServiceTest extends TestCase
 		$this->service = new PanelDataService($this->settings, $this->collectiveMapper, $this->urlGenerator);
 	}
 
-	private function collective(int $id, string $name, ?int $trashTimestamp = null): Collective
+	private function collective(int $id, ?int $trashTimestamp = null): Collective
 	{
 		$collective = new Collective();
 		$collective->setId($id);
-		$collective->setName($name);
 		if ($trashTimestamp !== null) {
 			$collective->setTrashTimestamp($trashTimestamp);
 		}
 		return $collective;
 	}
 
+	private function wireCollectiveNames(array $names): void
+	{
+		$this->collectiveMapper->method('idToName')->willReturnCallback(
+			static fn (int $id, ?string $userId = null, bool $super = false) => $names[$id] ?? 'Collective ' . $id
+		);
+	}
+
 	public function testPanelDataShape(): void
 	{
 		$this->collectiveMapper->method('getAll')->willReturn([
-			$this->collective(9, 'Zebra'),
-			$this->collective(8, 'Anton'),
-			$this->collective(10, 'Trashed', 1700000000),
+			$this->collective(9),
+			$this->collective(8),
+			$this->collective(10, 1700000000),
 		]);
+		// Collectives resolve their display names through the Circles app
+		$this->wireCollectiveNames([8 => 'Anton', 9 => 'Zebra']);
 		$this->urlGenerator->method('linkToRoute')->willReturn('/apps/collectives_todos/settings');
 
 		$data = $this->service->getPanelData();
@@ -75,9 +83,10 @@ class PanelDataServiceTest extends TestCase
 	public function testOverridesPrefilled(): void
 	{
 		$this->collectiveMapper->method('getAll')->willReturn([
-			$this->collective(8, 'Anton'),
-			$this->collective(9, 'Zebra'),
+			$this->collective(8),
+			$this->collective(9),
 		]);
+		$this->wireCollectiveNames([8 => 'Anton', 9 => 'Zebra']);
 		$this->settings->method('getOverride')->willReturnCallback(
 			fn (int $collectiveId, string $key) => $collectiveId === 8 && $key === SettingsService::KEY_TODOS_PAGE_NAME ? 'Aufgaben' : null
 		);
@@ -91,9 +100,10 @@ class PanelDataServiceTest extends TestCase
 	public function testSubmittedValuesOverrideDisplay(): void
 	{
 		$this->collectiveMapper->method('getAll')->willReturn([
-			$this->collective(8, 'Anton'),
-			$this->collective(9, 'Zebra'),
+			$this->collective(8),
+			$this->collective(9),
 		]);
+		$this->wireCollectiveNames([8 => 'Anton', 9 => 'Zebra']);
 
 		$data = $this->service->getPanelData([
 			'default_tree_position' => 'bottom',
@@ -110,5 +120,18 @@ class PanelDataServiceTest extends TestCase
 		$this->assertSame(10, $data['defaults']['max_checkboxes']);
 		$this->assertSame('alphabetical', $data['collectives'][1]['tree_position']);
 		$this->assertSame('Anton', $data['collectives'][0]['name']);
+	}
+
+	public function testFallsBackWhenNameUnresolvable(): void
+	{
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(8),
+		]);
+		$this->collectiveMapper->method('idToName')
+			->willThrowException(new \OCP\AppFramework\QueryException('circle gone'));
+
+		$data = $this->service->getPanelData();
+
+		$this->assertSame('Collective 8', $data['collectives'][0]['name']);
 	}
 }
