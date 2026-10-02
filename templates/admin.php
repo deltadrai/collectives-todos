@@ -13,7 +13,16 @@
     #collectives-todos-settings .radio-group label { display: inline-flex; align-items: center; gap: 6px; }
     #collectives-todos-settings ul.error { color: var(--color-error, #d41010); }
     #collectives-todos-settings table.grid th, #collectives-todos-settings table.grid td { padding: 4px 8px; text-align: left; }
+    #collectives-todos-settings .emoji-input { display: inline-flex; align-items: center; gap: 4px; }
+    #collectives-todos-settings .emoji-input input { width: 5em; text-align: center; }
     #collectives-todos-settings .button.primary { margin-top: 12px; }
+    #collectives-todos-emoji-picker { position: fixed; z-index: 1000; display: grid; grid-template-columns: repeat(8, 32px); gap: 2px; padding: 8px; max-width: 308px;
+        background: var(--color-main-background, #fff); border: 1px solid var(--color-border, #dbdbdb); border-radius: var(--border-radius-large, 4px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+    #collectives-todos-emoji-picker[hidden] { display: none; }
+    #collectives-todos-emoji-picker button { width: 32px; height: 32px; padding: 0; font-size: 18px; line-height: 1; background: transparent; border: none; border-radius: 4px; cursor: pointer; }
+    #collectives-todos-emoji-picker button:hover { background: var(--color-background-hover, #f0f0f0); }
+    #collectives-todos-emoji-picker .emoji-none { grid-column: span 8; width: auto; height: 24px; font-size: 12px; }
 </style>
 
 <div class="section" id="collectives-todos-settings">
@@ -35,6 +44,15 @@
             <label for="default_todos_page_name"><?php p('Todos page name'); ?></label>
             <input type="text" id="default_todos_page_name" name="default_todos_page_name"
                    value="<?php p($defaults['todos_page_name']); ?>">
+        </div>
+
+        <div class="field">
+            <label for="default_todos_page_emoji"><?php p('Todos page emoji'); ?></label>
+            <div class="emoji-input">
+                <input type="text" id="default_todos_page_emoji" name="default_todos_page_emoji"
+                       value="<?php p($defaults['todos_page_emoji']); ?>" placeholder="<?php p('None'); ?>">
+                <button type="button" class="emoji-picker-trigger" data-target="default_todos_page_emoji">🙂</button>
+            </div>
         </div>
 
         <div class="field">
@@ -64,6 +82,7 @@
             <tr>
                 <th><?php p('Collective'); ?></th>
                 <th><?php p('Todos page name'); ?></th>
+                <th><?php p('Emoji'); ?></th>
                 <th><?php p('Position in the page tree'); ?></th>
                 <th><?php p('Maximum checkboxes'); ?></th>
             </tr>
@@ -75,6 +94,16 @@
                     <td>
                         <input type="text" name="override[<?php p($collective['id']); ?>][todos_page_name]"
                                value="<?php p($collective['todos_page_name']); ?>" placeholder="<?php p($defaults['todos_page_name']); ?>">
+                    </td>
+                    <td>
+                        <div class="emoji-input">
+                            <input type="text" id="collectives-todos-emoji-override-<?php p($collective['id']); ?>"
+                                   name="override[<?php p($collective['id']); ?>][todos_page_emoji]"
+                                   value="<?php p($collective['todos_page_emoji']); ?>"
+                                   placeholder="<?php p($defaults['todos_page_emoji'] !== '' ? $defaults['todos_page_emoji'] : 'None'); ?>">
+                            <button type="button" class="emoji-picker-trigger"
+                                    data-target="collectives-todos-emoji-override-<?php p($collective['id']); ?>">🙂</button>
+                        </div>
                     </td>
                     <td>
                         <select name="override[<?php p($collective['id']); ?>][tree_position]">
@@ -98,4 +127,66 @@
 
         <button type="submit" class="button primary"><?php p('Save'); ?></button>
     </form>
+
+    <div id="collectives-todos-emoji-picker" hidden>
+        <button type="button" data-emoji="" class="emoji-none" title="<?php p('No emoji'); ?>"><?php p('No emoji'); ?></button>
+        <?php foreach ([
+            '✅', '☑️', '✔️', '🚀', '🎯', '⭐', '🔥', '💡',
+            '⚠️', '🔔', '🔖', '🏷️', '📌', '📍', '🧭', '🛠️',
+            '📋', '🗒️', '📝', '📄', '📁', '📂', '🗂️', '🗃️',
+            '📦', '✍️', '🖊️', '👍', '🤝', '💪', '🎉', '🏆',
+            '📅', '🗓️', '⏰', '⏳', '🔒', '🔑', '🧩', '🔍',
+            '📊', '📈', '💬', '💭', '🌱', '🌿', '🍀', '🌸',
+            '🌍', '🐛', '🐝', '🦋', '❤️', '🧠', '👀', '🫶',
+        ] as $emoji): ?>
+            <button type="button" data-emoji="<?php p($emoji); ?>" title="<?php p($emoji); ?>"><?php p($emoji); ?></button>
+        <?php endforeach; ?>
+    </div>
 </div>
+
+<script>
+    (function () {
+        'use strict';
+        var picker = document.getElementById('collectives-todos-emoji-picker');
+        var target = null;
+
+        document.querySelectorAll('.emoji-picker-trigger').forEach(function (button) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                target = document.getElementById(button.dataset.target);
+                var rect = button.getBoundingClientRect();
+                var left = Math.min(rect.left, window.innerWidth - 320);
+                var top = rect.bottom + window.scrollY + 4;
+                if (top + 260 > window.scrollY + window.innerHeight) {
+                    top = rect.top + window.scrollY - 264;
+                }
+                picker.style.left = left + 'px';
+                picker.style.top = top + 'px';
+                picker.hidden = false;
+            });
+        });
+
+        picker.querySelectorAll('button[data-emoji]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (target !== null) {
+                    target.value = button.dataset.emoji;
+                }
+                picker.hidden = true;
+            });
+        });
+
+        document.addEventListener('click', function (event) {
+            if (picker.hidden) {
+                return;
+            }
+            if (!picker.contains(event.target) && !event.target.closest('.emoji-picker-trigger')) {
+                picker.hidden = true;
+            }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                picker.hidden = true;
+            }
+        });
+    })();
+</script>

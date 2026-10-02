@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Todos page emoji config item (default none, per-collective override): the emoji is written to the
+  Todos page's `collectives_pages` row like the emoji of any other Collectives page and rendered in
+  the page tree. Validated with the Collectives app's own emoji validation; the settings page ships
+  a curated emoji picker built with plain HTML/JS (no new dependencies), and any emoji can be pasted
+  directly. The emoji is enforced on every Todos page regeneration and on settings save.
+
 - Admin settings page (Settings → Admin → Collectives Todos) with instance-wide defaults and
   per-collective overrides for three config items: the Todos page name (default `Todos`), the
   position of the Todos page in the Collectives page tree (always on top / always on bottom /

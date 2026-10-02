@@ -19,6 +19,7 @@ class SettingsService
 	public const APP_ID = 'collectives_todos';
 
 	public const KEY_TODOS_PAGE_NAME = 'todos_page_name';
+	public const KEY_TODOS_PAGE_EMOJI = 'todos_page_emoji';
 	public const KEY_TREE_POSITION = 'tree_position';
 	public const KEY_MAX_CHECKBOXES = 'max_checkboxes';
 
@@ -36,6 +37,7 @@ class SettingsService
 
 	private const DEFAULTS = [
 		self::KEY_TODOS_PAGE_NAME => self::DEFAULT_TODOS_PAGE_NAME,
+		self::KEY_TODOS_PAGE_EMOJI => '',
 		self::KEY_TREE_POSITION => self::POSITION_TOP,
 		self::KEY_MAX_CHECKBOXES => '0',
 	];
@@ -48,12 +50,13 @@ class SettingsService
 	}
 
 	/**
-	 * @return array{todos_page_name: string, tree_position: string, max_checkboxes: int}
+	 * @return array{todos_page_name: string, todos_page_emoji: string, tree_position: string, max_checkboxes: int}
 	 */
 	public function getDefaults(): array
 	{
 		return [
 			self::KEY_TODOS_PAGE_NAME => $this->getDefault(self::KEY_TODOS_PAGE_NAME),
+			self::KEY_TODOS_PAGE_EMOJI => $this->getDefault(self::KEY_TODOS_PAGE_EMOJI),
 			self::KEY_TREE_POSITION => $this->getDefault(self::KEY_TREE_POSITION),
 			self::KEY_MAX_CHECKBOXES => (int)$this->getDefault(self::KEY_MAX_CHECKBOXES),
 		];
@@ -151,10 +154,27 @@ class SettingsService
 		return (int)$raw;
 	}
 
+	/**
+	 * Validate a Todos page emoji the same way the Collectives app validates
+	 * page emoji (single emoji grapheme, max 8 characters). Empty means no
+	 * emoji.
+	 */
+	public static function normalizePageEmoji(string $raw): string
+	{
+		$raw = trim($raw);
+		try {
+			\OCA\Collectives\Service\EmojiHelper::assertValid($raw === '' ? null : $raw);
+		} catch (\OCA\Collectives\Service\UnprocessableEntityException $e) {
+			throw new \InvalidArgumentException($e->getMessage(), 0, $e);
+		}
+		return $raw;
+	}
+
 	private function setValidated(string $key, string $value, ?int $collectiveId): void
 	{
 		$validated = match ($key) {
 			self::KEY_TODOS_PAGE_NAME => self::normalizePageName($value),
+			self::KEY_TODOS_PAGE_EMOJI => self::normalizePageEmoji($value),
 			self::KEY_TREE_POSITION => self::normalizePosition($value),
 			self::KEY_MAX_CHECKBOXES => (string)self::normalizeMaxCheckboxes($value),
 			default => throw new \InvalidArgumentException('Unknown config key: ' . $key),

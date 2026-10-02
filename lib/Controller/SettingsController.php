@@ -53,6 +53,7 @@ class SettingsController extends Controller
 	{
 		$defaults = [
 			SettingsService::KEY_TODOS_PAGE_NAME => (string)$this->request->getParam('default_todos_page_name', ''),
+			SettingsService::KEY_TODOS_PAGE_EMOJI => (string)$this->request->getParam('default_todos_page_emoji', ''),
 			SettingsService::KEY_TREE_POSITION => (string)$this->request->getParam('default_tree_position', ''),
 			SettingsService::KEY_MAX_CHECKBOXES => (string)$this->request->getParam('default_max_checkboxes', ''),
 		];
@@ -95,6 +96,7 @@ class SettingsController extends Controller
 
 		$submitted = [
 			'default_todos_page_name' => $defaults[SettingsService::KEY_TODOS_PAGE_NAME],
+			'default_todos_page_emoji' => $defaults[SettingsService::KEY_TODOS_PAGE_EMOJI],
 			'default_tree_position' => $defaults[SettingsService::KEY_TREE_POSITION],
 			'default_max_checkboxes' => $defaults[SettingsService::KEY_MAX_CHECKBOXES],
 			'override' => $override,
@@ -107,9 +109,11 @@ class SettingsController extends Controller
 		// Snapshot before any write: which collectives are affected
 		$oldFilenames = [];
 		$oldPositions = [];
+		$oldEmojis = [];
 		foreach ($collectiveIds as $collectiveId) {
 			$oldFilenames[$collectiveId] = $this->settings->resolveTodosPageFilename($collectiveId);
 			$oldPositions[$collectiveId] = $this->settings->resolve($collectiveId, SettingsService::KEY_TREE_POSITION);
+			$oldEmojis[$collectiveId] = $this->settings->resolve($collectiveId, SettingsService::KEY_TODOS_PAGE_EMOJI);
 		}
 
 		foreach ($defaultOperations as [$key, $value]) {
@@ -130,7 +134,8 @@ class SettingsController extends Controller
 		$applyErrors = [];
 		foreach ($collectiveIds as $collectiveId) {
 			$changed = $this->settings->resolveTodosPageFilename($collectiveId) !== $oldFilenames[$collectiveId]
-				|| $this->settings->resolve($collectiveId, SettingsService::KEY_TREE_POSITION) !== $oldPositions[$collectiveId];
+				|| $this->settings->resolve($collectiveId, SettingsService::KEY_TREE_POSITION) !== $oldPositions[$collectiveId]
+				|| $this->settings->resolve($collectiveId, SettingsService::KEY_TODOS_PAGE_EMOJI) !== $oldEmojis[$collectiveId];
 			if ($changed) {
 				$error = $this->applier->applyToCollective($collectiveId, $oldFilenames[$collectiveId]);
 				if ($error !== null) {
@@ -152,6 +157,7 @@ class SettingsController extends Controller
 	{
 		return match ($key) {
 			SettingsService::KEY_TODOS_PAGE_NAME => SettingsService::normalizePageName($value),
+			SettingsService::KEY_TODOS_PAGE_EMOJI => SettingsService::normalizePageEmoji($value),
 			SettingsService::KEY_TREE_POSITION => SettingsService::normalizePosition($value),
 			SettingsService::KEY_MAX_CHECKBOXES => (string)SettingsService::normalizeMaxCheckboxes($value),
 			default => throw new \InvalidArgumentException('Unknown config key: ' . $key),

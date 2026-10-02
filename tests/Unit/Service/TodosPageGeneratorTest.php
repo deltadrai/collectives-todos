@@ -7,6 +7,7 @@ namespace OCA\CollectiveTodos\Tests\Unit\Service;
 use OCA\CollectiveTodos\Service\TodosPageGenerator;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
 use OCA\CollectiveTodos\Service\PageLinkBuilder;
+use OCA\CollectiveTodos\Service\PageEmojiService;
 use OCA\CollectiveTodos\Service\PageOrderingService;
 use OCA\CollectiveTodos\Service\SettingsService;
 use OCA\CollectiveTodos\Service\TextDocumentResetter;
@@ -21,6 +22,7 @@ class TodosPageGeneratorTest extends TestCase
     private PageLinkBuilder $linkBuilder;
     private SettingsService $settings;
     private PageOrderingService $ordering;
+    private PageEmojiService $emojiService;
     private TextDocumentResetter $textResetter;
     private Folder $collectiveFolder;
     private string $todosFilename = 'Todos.md';
@@ -31,6 +33,7 @@ class TodosPageGeneratorTest extends TestCase
         $this->linkBuilder = $this->createMock(PageLinkBuilder::class);
         $this->settings = $this->createMock(SettingsService::class);
         $this->ordering = $this->createMock(PageOrderingService::class);
+        $this->emojiService = $this->createMock(PageEmojiService::class);
         $this->textResetter = $this->createMock(TextDocumentResetter::class);
         $this->collectiveFolder = $this->createMock(Folder::class);
 
@@ -42,7 +45,8 @@ class TodosPageGeneratorTest extends TestCase
             $this->linkBuilder,
             $this->textResetter,
             $this->settings,
-            $this->ordering
+            $this->ordering,
+            $this->emojiService
         );
     }
 
@@ -449,6 +453,22 @@ class TodosPageGeneratorTest extends TestCase
         $this->ordering->expects($this->once())
             ->method('enforcePosition')
             ->with($this->collectiveFolder, null);
+
+        $this->generator->regenerateTodosPage($this->collectiveFolder);
+    }
+
+    public function testRegenerateEnforcesEmoji(): void
+    {
+        $this->aggregator->method('getAllCheckboxes')->willReturn([]);
+        $this->aggregator->method('getCollectiveId')->willReturn(6);
+        $this->collectiveFolder->method('nodeExists')->willReturn(false);
+        $createdFile = $this->createMock(File::class);
+        $createdFile->method('getId')->willReturn(4149);
+        $this->collectiveFolder->method('newFile')->willReturn($createdFile);
+
+        $this->emojiService->expects($this->once())
+            ->method('enforceEmoji')
+            ->with($this->collectiveFolder, 6);
 
         $this->generator->regenerateTodosPage($this->collectiveFolder);
     }

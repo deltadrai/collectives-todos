@@ -48,6 +48,10 @@ class PanelDataService
 		if (isset($submitted['default_todos_page_name']) && $submitted['default_todos_page_name'] !== '') {
 			$defaults[SettingsService::KEY_TODOS_PAGE_NAME] = (string)$submitted['default_todos_page_name'];
 		}
+		if (array_key_exists('default_todos_page_emoji', $submitted)) {
+			// An empty emoji is a valid state (no emoji), so it must re-fill too
+			$defaults[SettingsService::KEY_TODOS_PAGE_EMOJI] = (string)$submitted['default_todos_page_emoji'];
+		}
 		if (isset($submitted['default_tree_position']) && $submitted['default_tree_position'] !== '') {
 			$defaults[SettingsService::KEY_TREE_POSITION] = (string)$submitted['default_tree_position'];
 		}
@@ -65,6 +69,7 @@ class PanelDataService
 			$collectiveId = (int)$collective->getId();
 			$override = [
 				'todos_page_name' => $this->settings->getOverride($collectiveId, SettingsService::KEY_TODOS_PAGE_NAME) ?? '',
+				'todos_page_emoji' => $this->settings->getOverride($collectiveId, SettingsService::KEY_TODOS_PAGE_EMOJI) ?? '',
 				'tree_position' => $this->settings->getOverride($collectiveId, SettingsService::KEY_TREE_POSITION) ?? '',
 				'max_checkboxes' => $this->settings->getOverride($collectiveId, SettingsService::KEY_MAX_CHECKBOXES) ?? '',
 			];
@@ -80,6 +85,7 @@ class PanelDataService
 				'id' => $collectiveId,
 				'name' => $this->resolveCollectiveName($collectiveId),
 				'todos_page_name' => $override['todos_page_name'],
+				'todos_page_emoji' => $override['todos_page_emoji'],
 				'tree_position' => $override['tree_position'],
 				'max_checkboxes' => $override['max_checkboxes'],
 			];
@@ -92,6 +98,7 @@ class PanelDataService
 			'errors' => $errors,
 			'defaults' => [
 				'todos_page_name' => $defaults[SettingsService::KEY_TODOS_PAGE_NAME],
+				'todos_page_emoji' => $defaults[SettingsService::KEY_TODOS_PAGE_EMOJI],
 				'tree_position' => $defaults[SettingsService::KEY_TREE_POSITION],
 				'max_checkboxes' => (int)$defaults[SettingsService::KEY_MAX_CHECKBOXES],
 			],

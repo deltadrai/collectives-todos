@@ -14,19 +14,22 @@ class TodosPageGenerator
     private TextDocumentResetter $textResetter;
     private SettingsService $settings;
     private PageOrderingService $ordering;
+    private PageEmojiService $emojiService;
 
     public function __construct(
         CheckboxAggregator $aggregator,
         PageLinkBuilder $linkBuilder,
         TextDocumentResetter $textResetter,
         SettingsService $settings,
-        PageOrderingService $ordering
+        PageOrderingService $ordering,
+        PageEmojiService $emojiService
     ) {
         $this->aggregator = $aggregator;
         $this->linkBuilder = $linkBuilder;
         $this->textResetter = $textResetter;
         $this->settings = $settings;
         $this->ordering = $ordering;
+        $this->emojiService = $emojiService;
     }
 
     /**
@@ -41,6 +44,7 @@ class TodosPageGenerator
         $content = $this->generateContent($collectiveFolder, $filename);
         $this->saveTodosPage($collectiveFolder, $content, $filename);
         $this->ordering->enforcePosition($collectiveFolder, $collectiveId);
+        $this->emojiService->enforceEmoji($collectiveFolder, $collectiveId);
     }
 
     /**

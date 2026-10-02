@@ -37,6 +37,12 @@ class SettingsControllerTest extends TestCase
 	/** @var string default tree position, mutable by setDefault */
 	private string $defaultPosition = 'top';
 
+	/** @var string default Todos page emoji, mutable by setDefault */
+	private string $defaultEmoji = '';
+
+	/** @var array<int, string> resolved Todos page emoji per collective id, mutable by setOverride */
+	private array $resolvedEmojis = [];
+
 	protected function setUp(): void
 	{
 		$request = $this->createMock(IRequest::class);
@@ -60,18 +66,27 @@ class SettingsControllerTest extends TestCase
 			});
 		$this->settings->method('resolve')
 			->willReturnCallback(function (?int $collectiveId, string $key) {
-				if ($key !== SettingsService::KEY_TREE_POSITION) {
-					return null;
+				if ($key === SettingsService::KEY_TREE_POSITION) {
+					if ($collectiveId === null) {
+						return $this->defaultPosition;
+					}
+					return $this->resolvedPositions[$collectiveId] ?? $this->defaultPosition;
 				}
-				if ($collectiveId === null) {
-					return $this->defaultPosition;
+				if ($key === SettingsService::KEY_TODOS_PAGE_EMOJI) {
+					if ($collectiveId === null) {
+						return $this->defaultEmoji;
+					}
+					return $this->resolvedEmojis[$collectiveId] ?? $this->defaultEmoji;
 				}
-				return $this->resolvedPositions[$collectiveId] ?? $this->defaultPosition;
+				return null;
 			});
 		$this->settings->method('setDefault')->willReturnCallback(
 			function (string $key, string $value): void {
 				if ($key === SettingsService::KEY_TREE_POSITION) {
 					$this->defaultPosition = $value;
+				}
+				if ($key === SettingsService::KEY_TODOS_PAGE_EMOJI) {
+					$this->defaultEmoji = $value;
 				}
 			}
 		);
@@ -105,6 +120,7 @@ class SettingsControllerTest extends TestCase
 	{
 		$this->params = [
 			'default_todos_page_name' => 'Tasks',
+			'default_todos_page_emoji' => '📋',
 			'default_tree_position' => 'bottom',
 			'default_max_checkboxes' => '10',
 		];
@@ -127,6 +143,7 @@ class SettingsControllerTest extends TestCase
 		);
 		$this->assertSame([
 			[SettingsService::KEY_TODOS_PAGE_NAME, 'Tasks'],
+			[SettingsService::KEY_TODOS_PAGE_EMOJI, '📋'],
 			[SettingsService::KEY_TREE_POSITION, 'bottom'],
 			[SettingsService::KEY_MAX_CHECKBOXES, '10'],
 		], $setDefaultCalls);
@@ -165,8 +182,8 @@ class SettingsControllerTest extends TestCase
 			'default_tree_position' => 'top',
 			'default_max_checkboxes' => '0',
 			'override' => [
-				6 => ['todos_page_name' => '', 'tree_position' => '', 'max_checkboxes' => ''],
-				7 => ['todos_page_name' => 'Aufgaben', 'tree_position' => 'bottom', 'max_checkboxes' => '100'],
+				6 => ['todos_page_name' => '', 'todos_page_emoji' => '', 'tree_position' => '', 'max_checkboxes' => ''],
+				7 => ['todos_page_name' => 'Aufgaben', 'todos_page_emoji' => '📋', 'tree_position' => 'bottom', 'max_checkboxes' => '100'],
 			],
 		];
 		$this->collectiveMapper->method('getAll')->willReturn([]);
@@ -188,11 +205,13 @@ class SettingsControllerTest extends TestCase
 
 		$this->assertSame([
 			[6, SettingsService::KEY_TODOS_PAGE_NAME],
+			[6, SettingsService::KEY_TODOS_PAGE_EMOJI],
 			[6, SettingsService::KEY_TREE_POSITION],
 			[6, SettingsService::KEY_MAX_CHECKBOXES],
 		], $clearOverrideCalls);
 		$this->assertSame([
 			[7, SettingsService::KEY_TODOS_PAGE_NAME, 'Aufgaben'],
+			[7, SettingsService::KEY_TODOS_PAGE_EMOJI, '📋'],
 			[7, SettingsService::KEY_TREE_POSITION, 'bottom'],
 			[7, SettingsService::KEY_MAX_CHECKBOXES, '100'],
 		], $setOverrideCalls);
@@ -339,5 +358,37 @@ class SettingsControllerTest extends TestCase
 			->with(6, 'Todos.md');
 
 		$this->controller->save();
+	}
+
+	public function testSaveAppliesSideEffectsWhenEmojiChanged(): void
+	{
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_todos_page_emoji' => '',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'override' => [
+				6 => ['todos_page_name' => '', 'todos_page_emoji' => '📋', 'tree_position' => '', 'max_checkboxes' => ''],
+			],
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+		]);
+
+		$this->settings->method('setOverride')->willReturnCallback(
+			function (int $collectiveId, string $key, string $value): void {
+				if ($collectiveId === 6 && $key === SettingsService::KEY_TODOS_PAGE_EMOJI) {
+					$this->resolvedEmojis[6] = $value;
+				}
+			}
+		);
+
+		$this->applier->expects($this->once())
+			->method('applyToCollective')
+			->with(6, 'Todos.md');
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(RedirectResponse::class, $response);
 	}
 }

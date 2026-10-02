@@ -71,6 +71,11 @@ default and can be overridden per collective (an empty field uses the default):
   after a reload.
 - **Todos page name**: changing the name renames the existing Todos page file. If a page with the
   new name already exists in a collective, the rename is skipped and reported on the settings page.
+- **Todos page emoji**: the emoji is written to the Todos page's `collectives_pages` row, exactly
+  like the emoji of any other Collectives page, and rendered in the page tree. It is validated the
+  same way Collectives validates page emoji (single emoji, max 8 characters). The settings page
+  offers a small curated picker, or paste any emoji directly; empty means no emoji. As with the tree
+  position, manual emoji changes made in Collectives are re-asserted on the next page save.
 - **Maximum checkboxes**: once the limit is reached, further checkboxes are not cached and the Todos
   page shows a `*(list truncated by the settings limit)*` note under the affected page's section.
 

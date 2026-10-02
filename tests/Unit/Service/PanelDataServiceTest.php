@@ -23,6 +23,7 @@ class PanelDataServiceTest extends TestCase
 		$this->settings = $this->createMock(SettingsService::class);
 		$this->settings->method('getDefaults')->willReturn([
 			SettingsService::KEY_TODOS_PAGE_NAME => 'Todos',
+			SettingsService::KEY_TODOS_PAGE_EMOJI => '',
 			SettingsService::KEY_TREE_POSITION => 'top',
 			SettingsService::KEY_MAX_CHECKBOXES => 0,
 		]);
@@ -65,6 +66,7 @@ class PanelDataServiceTest extends TestCase
 		$this->assertSame('/apps/collectives_todos/settings', $data['form_action']);
 		$this->assertSame([], $data['errors']);
 		$this->assertSame('Todos', $data['defaults']['todos_page_name']);
+		$this->assertSame('', $data['defaults']['todos_page_emoji']);
 		$this->assertSame('top', $data['defaults']['tree_position']);
 		$this->assertSame(0, $data['defaults']['max_checkboxes']);
 		$this->assertSame(['top' => 'Always on top', 'bottom' => 'Always on bottom', 'alphabetical' => 'Alphabetically'], $data['positions']);
@@ -76,6 +78,7 @@ class PanelDataServiceTest extends TestCase
 		$this->assertSame(9, $data['collectives'][1]['id']);
 		$this->assertSame('Zebra', $data['collectives'][1]['name']);
 		$this->assertSame('', $data['collectives'][0]['todos_page_name']);
+		$this->assertSame('', $data['collectives'][0]['todos_page_emoji']);
 		$this->assertSame('', $data['collectives'][0]['tree_position']);
 		$this->assertSame('', $data['collectives'][0]['max_checkboxes']);
 	}
@@ -108,17 +111,20 @@ class PanelDataServiceTest extends TestCase
 		$data = $this->service->getPanelData([
 			'default_tree_position' => 'bottom',
 			'default_todos_page_name' => 'Tasks',
+			'default_todos_page_emoji' => '📋',
 			'default_max_checkboxes' => '10',
 			'override' => [
-				9 => ['tree_position' => 'alphabetical'],
+				9 => ['tree_position' => 'alphabetical', 'todos_page_emoji' => '🗒️'],
 			],
 		], ['something failed']);
 
 		$this->assertSame(['something failed'], $data['errors']);
 		$this->assertSame('bottom', $data['defaults']['tree_position']);
+		$this->assertSame('📋', $data['defaults']['todos_page_emoji']);
 		$this->assertSame('Tasks', $data['defaults']['todos_page_name']);
 		$this->assertSame(10, $data['defaults']['max_checkboxes']);
 		$this->assertSame('alphabetical', $data['collectives'][1]['tree_position']);
+		$this->assertSame('🗒️', $data['collectives'][1]['todos_page_emoji']);
 		$this->assertSame('Anton', $data['collectives'][0]['name']);
 	}
 

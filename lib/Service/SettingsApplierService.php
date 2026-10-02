@@ -20,17 +20,20 @@ class SettingsApplierService
 	private CheckboxAggregator $aggregator;
 	private SettingsService $settings;
 	private PageOrderingService $ordering;
+	private PageEmojiService $emojiService;
 	private LoggerInterface $logger;
 
 	public function __construct(
 		CheckboxAggregator $aggregator,
 		SettingsService $settings,
 		PageOrderingService $ordering,
+		PageEmojiService $emojiService,
 		LoggerInterface $logger
 	) {
 		$this->aggregator = $aggregator;
 		$this->settings = $settings;
 		$this->ordering = $ordering;
+		$this->emojiService = $emojiService;
 		$this->logger = $logger;
 	}
 
@@ -71,6 +74,13 @@ class SettingsApplierService
 		} catch (\Throwable $e) {
 			$this->logger->warning('collectives_todos: could not enforce tree position for collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
 			return 'Could not enforce the Todos page position: ' . $e->getMessage();
+		}
+
+		try {
+			$this->emojiService->enforceEmoji($collectiveFolder, $collectiveId);
+		} catch (\Throwable $e) {
+			$this->logger->warning('collectives_todos: could not enforce Todos page emoji for collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
+			return 'Could not enforce the Todos page emoji: ' . $e->getMessage();
 		}
 
 		return $error;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\CollectiveTodos\Tests\Unit\Service;
 
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
+use OCA\CollectiveTodos\Service\PageEmojiService;
 use OCA\CollectiveTodos\Service\PageOrderingService;
 use OCA\CollectiveTodos\Service\SettingsApplierService;
 use OCA\CollectiveTodos\Service\SettingsService;
@@ -19,6 +20,7 @@ class SettingsApplierServiceTest extends TestCase
 	private CheckboxAggregator $aggregator;
 	private SettingsService $settings;
 	private PageOrderingService $ordering;
+	private PageEmojiService $emojiService;
 	private LoggerInterface $logger;
 	private SettingsApplierService $service;
 	private Folder $collectiveFolder;
@@ -29,8 +31,9 @@ class SettingsApplierServiceTest extends TestCase
 		$this->aggregator = $this->createMock(CheckboxAggregator::class);
 		$this->settings = $this->createMock(SettingsService::class);
 		$this->ordering = $this->createMock(PageOrderingService::class);
+		$this->emojiService = $this->createMock(PageEmojiService::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
-		$this->service = new SettingsApplierService($this->aggregator, $this->settings, $this->ordering, $this->logger);
+		$this->service = new SettingsApplierService($this->aggregator, $this->settings, $this->ordering, $this->emojiService, $this->logger);
 		$this->collectiveFolder = $this->createMock(Folder::class);
 
 		$this->settings->method('resolveTodosPageFilename')
@@ -129,6 +132,20 @@ class SettingsApplierServiceTest extends TestCase
 
 		$this->ordering->expects($this->once())
 			->method('enforcePosition')
+			->with($folder, 8);
+		$this->emojiService->expects($this->once())
+			->method('enforceEmoji')
+			->with($folder, 8);
+
+		$this->assertNull($this->service->applyToCollective(8, 'Todos.md'));
+	}
+
+	public function testAppliesEmoji(): void
+	{
+		$folder = $this->wireFolder(['Todos.md']);
+
+		$this->emojiService->expects($this->once())
+			->method('enforceEmoji')
 			->with($folder, 8);
 
 		$this->assertNull($this->service->applyToCollective(8, 'Todos.md'));

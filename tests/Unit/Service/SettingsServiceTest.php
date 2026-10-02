@@ -170,4 +170,41 @@ class SettingsServiceTest extends TestCase
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service->setDefault(SettingsService::KEY_MAX_CHECKBOXES, '-5');
 	}
+
+	public function testNormalizePageEmojiAcceptsEmptyAndSingleEmoji(): void
+	{
+		$this->assertSame('', SettingsService::normalizePageEmoji(''));
+		$this->assertSame('', SettingsService::normalizePageEmoji('   '));
+		$this->assertSame('✅', SettingsService::normalizePageEmoji(' ✅ '));
+		$this->assertSame('🐛', SettingsService::normalizePageEmoji('🐛'));
+	}
+
+	public function testNormalizePageEmojiRejectsPlainText(): void
+	{
+		$this->expectException(\InvalidArgumentException::class);
+		SettingsService::normalizePageEmoji('abc');
+	}
+
+	public function testNormalizePageEmojiRejectsMultipleGraphemes(): void
+	{
+		$this->expectException(\InvalidArgumentException::class);
+		SettingsService::normalizePageEmoji('✅✅');
+	}
+
+	public function testNormalizePageEmojiRejectsControlCharacters(): void
+	{
+		$this->expectException(\InvalidArgumentException::class);
+		SettingsService::normalizePageEmoji("✅\x01");
+	}
+
+	public function testDefaultsIncludeTodosPageEmoji(): void
+	{
+		$this->config->method('getAppValue')
+			->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
+
+		$defaults = $this->service->getDefaults();
+
+		$this->assertSame('', $defaults['todos_page_emoji']);
+		$this->assertSame('', $this->service->resolve(8, SettingsService::KEY_TODOS_PAGE_EMOJI));
+	}
 }
