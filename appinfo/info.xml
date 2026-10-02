@@ -2,10 +2,10 @@
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>collectives_todos</id>
     <name>Collectives Todos</name>
-    <description>Todos integration for the Collectives app</description>
+    <description>See all your to-dos from your collectives in one place. Check something off in the Todos page and it is also checked off on the page it came from.</description>
     <version>1.0.0</version>
     <license>AGPL-3.0-or-later</license>
-    <author>hiemals</author>
+    <author>deltadrai gmbh</author>
     <namespace>CollectiveTodos</namespace>
     <types>
         <filesystem/>
@@ -22,7 +22,7 @@
         <admin>OCA\CollectiveTodos\Settings\Admin</admin>
         <admin-section>OCA\CollectiveTodos\Settings\Section</admin-section>
     </settings>
-    <website>TBD</website>
-    <repository>TBD</repository>
-    <bugs>TBD</bugs>
+    <website>https://deltadrai.github.io/collectives-todos/</website>
+    <repository>https://github.com/deltadrai/collectives-todos</repository>
+    <bugs>https://github.com/deltadrai/collectives-todos/issues</bugs>
 </info>
