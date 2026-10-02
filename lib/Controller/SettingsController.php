@@ -106,8 +106,10 @@ class SettingsController extends Controller
 
 		// Snapshot before any write: which collectives are affected
 		$oldFilenames = [];
+		$oldPositions = [];
 		foreach ($collectiveIds as $collectiveId) {
 			$oldFilenames[$collectiveId] = $this->settings->resolveTodosPageFilename($collectiveId);
+			$oldPositions[$collectiveId] = $this->settings->resolve($collectiveId, SettingsService::KEY_TREE_POSITION);
 		}
 
 		foreach ($defaultOperations as [$key, $value]) {
@@ -127,8 +129,9 @@ class SettingsController extends Controller
 
 		$applyErrors = [];
 		foreach ($collectiveIds as $collectiveId) {
-			$newFilename = $this->settings->resolveTodosPageFilename($collectiveId);
-			if ($newFilename !== $oldFilenames[$collectiveId]) {
+			$changed = $this->settings->resolveTodosPageFilename($collectiveId) !== $oldFilenames[$collectiveId]
+				|| $this->settings->resolve($collectiveId, SettingsService::KEY_TREE_POSITION) !== $oldPositions[$collectiveId];
+			if ($changed) {
 				$error = $this->applier->applyToCollective($collectiveId, $oldFilenames[$collectiveId]);
 				if ($error !== null) {
 					$applyErrors[] = 'Collective ' . $collectiveId . ': ' . $error;

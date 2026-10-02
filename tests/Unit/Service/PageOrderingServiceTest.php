@@ -211,4 +211,32 @@ class PageOrderingServiceTest extends TestCase
 
 		$this->service->enforcePosition($this->collectiveFolder, 8);
 	}
+
+    public function testSkipsOnNonIntegerEntries(): void
+    {
+        $this->treePosition = 'top';
+        $this->subpageOrder = '[1,"a"]';
+        $this->givenCollectiveFolderContent('Todos.md', 'Readme.md');
+        $this->givenLandingPageRow();
+
+        $this->pageMapper->expects($this->never())->method('update');
+
+        $this->service->enforcePosition($this->collectiveFolder, 8);
+
+        $this->assertSame('[1,"a"]', $this->subpageOrder);
+    }
+
+    public function testSkipsOnObjectOrder(): void
+    {
+        $this->treePosition = 'top';
+        $this->subpageOrder = '{"a":1}';
+        $this->givenCollectiveFolderContent('Todos.md', 'Readme.md');
+        $this->givenLandingPageRow();
+
+        $this->pageMapper->expects($this->never())->method('update');
+
+        $this->service->enforcePosition($this->collectiveFolder, 8);
+
+        $this->assertSame('{"a":1}', $this->subpageOrder);
+    }
 }

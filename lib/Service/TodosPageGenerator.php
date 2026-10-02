@@ -82,6 +82,7 @@ class TodosPageGenerator
             }
 
             if ($pageData['truncated'] ?? false) {
+                $lines[] = '';
                 $lines[] = '*(list truncated by the settings limit)*';
             }
 

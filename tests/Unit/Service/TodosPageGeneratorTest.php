@@ -418,7 +418,7 @@ class TodosPageGeneratorTest extends TestCase
 
         $content = $this->generator->generateContent($this->collectiveFolder, $this->todosFilename);
 
-        $this->assertStringContainsString("- [ ] Prepare agenda\n*(list truncated by the settings limit)*", $content);
+        $this->assertStringContainsString("- [ ] Prepare agenda\n\n*(list truncated by the settings limit)*", $content);
     }
 
     public function testRegenerateEnforcesPosition(): void

@@ -61,8 +61,13 @@ class PageOrderingService
 		}
 
 		$order = json_decode($page->getSubpageOrder() ?? '[]', true);
-		if (!is_array($order)) {
+		if (!is_array($order) || !array_is_list($order)) {
 			return;
+		}
+		foreach ($order as $id) {
+			if (!is_int($id)) {
+				return;
+			}
 		}
 
 		$todosId = (int)$todosFile->getId();

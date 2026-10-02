@@ -31,6 +31,12 @@ class SettingsControllerTest extends TestCase
 	/** @var array<int, string> resolved Todos filename per collective id, mutable by setOverride */
 	private array $resolvedFilenames = [];
 
+	/** @var array<int, string> resolved tree position per collective id, mutable by setOverride */
+	private array $resolvedPositions = [];
+
+	/** @var string default tree position, mutable by setDefault */
+	private string $defaultPosition = 'top';
+
 	protected function setUp(): void
 	{
 		$request = $this->createMock(IRequest::class);
@@ -52,6 +58,23 @@ class SettingsControllerTest extends TestCase
 				}
 				return $this->resolvedFilenames[$collectiveId] ?? 'Todos.md';
 			});
+		$this->settings->method('resolve')
+			->willReturnCallback(function (?int $collectiveId, string $key) {
+				if ($key !== SettingsService::KEY_TREE_POSITION) {
+					return null;
+				}
+				if ($collectiveId === null) {
+					return $this->defaultPosition;
+				}
+				return $this->resolvedPositions[$collectiveId] ?? $this->defaultPosition;
+			});
+		$this->settings->method('setDefault')->willReturnCallback(
+			function (string $key, string $value): void {
+				if ($key === SettingsService::KEY_TREE_POSITION) {
+					$this->defaultPosition = $value;
+				}
+			}
+		);
 
 		$this->urlGenerator->method('linkToRoute')
 			->willReturnCallback(fn (string $route, array $args = []) => $route . ':' . json_encode($args));
@@ -267,5 +290,54 @@ class SettingsControllerTest extends TestCase
 
 		$this->assertInstanceOf(TemplateResponse::class, $response);
 		$this->assertSame($expectedParams, $response->getParams());
+	}
+
+	public function testSaveAppliesSideEffectsWhenPositionChanged(): void
+	{
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'top',
+			'default_max_checkboxes' => '0',
+			'override' => [
+				6 => ['todos_page_name' => '', 'tree_position' => 'bottom', 'max_checkboxes' => ''],
+			],
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+		]);
+
+		$this->settings->method('setOverride')->willReturnCallback(
+			function (int $collectiveId, string $key, string $value): void {
+				if ($collectiveId === 6 && $key === SettingsService::KEY_TREE_POSITION) {
+					$this->resolvedPositions[6] = 'bottom';
+				}
+			}
+		);
+
+		$this->applier->expects($this->once())
+			->method('applyToCollective')
+			->with(6, 'Todos.md');
+
+		$response = $this->controller->save();
+
+		$this->assertInstanceOf(RedirectResponse::class, $response);
+	}
+
+	public function testSaveAppliesSideEffectsWhenDefaultPositionChanged(): void
+	{
+		$this->params = [
+			'default_todos_page_name' => 'Tasks',
+			'default_tree_position' => 'bottom',
+			'default_max_checkboxes' => '0',
+		];
+		$this->collectiveMapper->method('getAll')->willReturn([
+			$this->collective(6),
+		]);
+
+		$this->applier->expects($this->once())
+			->method('applyToCollective')
+			->with(6, 'Todos.md');
+
+		$this->controller->save();
 	}
 }
