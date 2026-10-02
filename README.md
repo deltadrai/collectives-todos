@@ -108,6 +108,9 @@ default and can be overridden per collective (an empty field uses the default):
 - v2: Checkboxes on the Todos page are matched back to source pages by text; two identical checkbox
   texts on one page are ambiguous (the first one is synced)
 - v2: Text edits made on the Todos page are discarded with the next regeneration
+- v2: Disabling deletes the Todos page and re-enabling creates it anew, so the page gets a new file
+  id; an already-open Collectives tab still references the old page, and its editor shows "File not
+  found" until the page list is refreshed (reloading the tab)
 
 ## Support
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\CollectiveTodos\Tests\Unit\Service;
 
+use OCA\Collectives\Db\Page;
 use OCA\Collectives\Db\PageMapper;
 use OCA\CollectiveTodos\Service\CheckboxAggregator;
 use OCA\CollectiveTodos\Service\PageEmojiService;
@@ -238,8 +239,12 @@ class SettingsApplierServiceTest extends TestCase
 			}
 		);
 		$this->pageMapper->expects($this->once())
-			->method('deleteByFileId')
-			->with(4149);
+			->method('findByFileId')
+			->with(4149)
+			->willReturn($this->createMock(Page::class));
+		$this->pageMapper->expects($this->once())
+			->method('delete')
+			->with($this->isInstanceOf(Page::class));
 
 		$this->assertNull($this->service->disableCollective(8));
 
@@ -260,7 +265,7 @@ class SettingsApplierServiceTest extends TestCase
 			->method('setOverride')
 			->with(8, SettingsService::KEY_ENABLED, SettingsService::VALUE_DISABLED);
 		$this->collectiveFolder->expects($this->never())->method('get');
-		$this->pageMapper->expects($this->never())->method('deleteByFileId');
+		$this->pageMapper->expects($this->never())->method('findByFileId');
 
 		$this->assertNull($this->service->disableCollective(8));
 	}
@@ -275,7 +280,7 @@ class SettingsApplierServiceTest extends TestCase
 		);
 
 		// The page row is only removed after a successful file delete
-		$this->pageMapper->expects($this->never())->method('deleteByFileId');
+		$this->pageMapper->expects($this->never())->method('findByFileId');
 
 		$error = $this->service->disableCollective(8);
 
@@ -312,8 +317,12 @@ class SettingsApplierServiceTest extends TestCase
 
 		$this->settings->expects($this->never())->method('setOverride');
 		$this->pageMapper->expects($this->once())
-			->method('deleteByFileId')
-			->with(4150);
+			->method('findByFileId')
+			->with(4150)
+			->willReturn($this->createMock(Page::class));
+		$this->pageMapper->expects($this->once())
+			->method('delete')
+			->with($this->isInstanceOf(Page::class));
 
 		$this->assertNull($this->service->disableTodosPage(8));
 

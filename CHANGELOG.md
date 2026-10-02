@@ -24,7 +24,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   explicitly disabled. The per-row Enable buttons render as inactive while the global default is
   disabled. Deleting the Todos page on disable now also removes its `collectives_pages` row (the
   delete is a hard delete on the appdata path, which the Collectives trash does not handle; the
-  managed page's content is fully derived, so nothing of value is lost).
+  managed page's content is fully derived, so nothing of value is lost). The row is resolved
+  untrashed and deleted directly: Collectives' `PageMapper::deleteByFileId` only removes rows that
+  were moved to trash and silently ignored the hard-deleted page's row, leaking one on every disable
+  cycle.
 
 ### Fixed
 

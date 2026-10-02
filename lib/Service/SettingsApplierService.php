@@ -170,9 +170,10 @@ class SettingsApplierService
 	 * delete runs on the appdata path, which the Collectives trash backend
 	 * does not handle, and a managed page's content is fully derived from
 	 * the source pages anyway - a restored copy would only conflict with
-	 * the page regenerated on re-enable. The page row is removed like
-	 * Collectives does for direct page deletes, so no orphaned rows
-	 * remain.
+	 * the page regenerated on re-enable. The page row is removed directly:
+	 * Collectives' PageMapper::deleteByFileId only deletes rows that were
+	 * moved to trash, so it would silently leave the hard-deleted page's
+	 * row behind.
 	 *
 	 * @return string|null Error message, or null on success
 	 */
@@ -185,12 +186,23 @@ class SettingsApplierService
 				$todosFile = $collectiveFolder->get($todosFilename);
 				$fileId = (int)$todosFile->getId();
 				$todosFile->delete();
-				$this->pageMapper->deleteByFileId($fileId);
+				$this->deletePageRow($fileId);
 			}
 		} catch (\Throwable $e) {
 			$this->logger->warning('collectives_todos: could not delete the Todos page of collective ' . $collectiveId . ': ' . $e->getMessage(), ['exception' => $e]);
 			return 'Could not delete the Todos page: ' . $e->getMessage();
 		}
 		return null;
+	}
+
+	/**
+	 * Delete the (untrashed) collectives_pages row of a Todos page file.
+	 */
+	private function deletePageRow(int $fileId): void
+	{
+		$page = $this->pageMapper->findByFileId($fileId);
+		if ($page !== null) {
+			$this->pageMapper->delete($page);
+		}
 	}
 }
