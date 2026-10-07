@@ -53,11 +53,45 @@ jobs:
             || { echo "::error::Archive is missing appinfo/info.xml"; exit 1; }
           cat /tmp/contents.txt
 
-      - name: Attach archive to GitHub release
+      - name: Sign the archive
+        env:
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          printf '%s\n' "$APPSTORE_PRIVATE_KEY" > build/collectives_todos.key
+          chmod 600 build/collectives_todos.key
+          openssl dgst -sha512 -sign build/collectives_todos.key \
+            "collectives_todos-v${APP_VERSION}.tar.gz" | openssl base64 \
+            > "collectives_todos-v${APP_VERSION}.tar.gz.sig"
+          rm build/collectives_todos.key
+
+      - name: Attach archive and signature to GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             "collectives_todos-v${APP_VERSION}.tar.gz" \
+            "collectives_todos-v${APP_VERSION}.tar.gz.sig" \
             --title "Collectives Todos v${APP_VERSION}" \
             --generate-notes
+
+      - name: Publish release to the Nextcloud app store
+        if: ${{ secrets.APPSTORE_TOKEN != '' }}
+        env:
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+        run: |
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/collectives_todos-v${APP_VERSION}.tar.gz"
+          PAYLOAD=$(jq -n \
+            --arg download "$DOWNLOAD_URL" \
+            --rawfile signature "collectives_todos-v${APP_VERSION}.tar.gz.sig" \
+            '{download: $download, signature: ($signature | gsub("\\s"; "")), nightly: false}')
+          STATUS=$(curl -sS -o /tmp/appstore-response.json -w '%{http_code}' \
+            -X POST https://apps.nextcloud.com/api/v1/apps/releases \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Token ${APPSTORE_TOKEN}" \
+            -d "$PAYLOAD")
+          echo "App store responded with HTTP $STATUS"
+          cat /tmp/appstore-response.json
+          case "$STATUS" in
+            200|201) ;;
+            *) echo "::error::Publishing to the app store failed" && exit 1 ;;
+          esac
