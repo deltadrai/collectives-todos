@@ -15,6 +15,8 @@ jobs:
 
       - name: Validate appinfo/info.xml against the app store schema
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2-utils
           xmllint --noout --schema https://apps.nextcloud.com/schema/apps/info.xsd appinfo/info.xml
 
       - name: Check tag matches app version
