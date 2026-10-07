@@ -11,8 +11,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - App store release packaging: a GitHub Action (`.github/workflows/release.yml`) builds a
   store-conformant `collectives_todos-vX.Y.Z.tar.gz` (single top-level folder named after the app
-  id, dev files excluded) on every `v*` tag and attaches it to the GitHub release. Tag and app
-  version must match, and `appinfo/info.xml` is validated against the app store schema.
+  id, dev files excluded) on every `v*` tag, signs it with the app certificate and attaches archive
+  and signature to the GitHub release. Tag and app version must match, and `appinfo/info.xml` is
+  validated against the app store schema. With the `APPSTORE_TOKEN` secret set, the release is
+  also published to the Nextcloud app store automatically.
 
 ### Changed
 
