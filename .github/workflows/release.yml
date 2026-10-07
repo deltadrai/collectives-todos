@@ -75,10 +75,13 @@ jobs:
             --generate-notes
 
       - name: Publish release to the Nextcloud app store
-        if: ${{ secrets.APPSTORE_TOKEN != '' }}
         env:
           APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
         run: |
+          if [ -z "$APPSTORE_TOKEN" ]; then
+            echo "APPSTORE_TOKEN secret not set - skipping app store publish."
+            exit 0
+          fi
           DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/collectives_todos-v${APP_VERSION}.tar.gz"
           PAYLOAD=$(jq -n \
             --arg download "$DOWNLOAD_URL" \
