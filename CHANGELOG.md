@@ -7,7 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-07
+
 ### Added
+
+- Initial release of Collectives Todos: event-driven aggregation of markdown checkboxes across all
+  pages of a Collectives into an auto-maintained Todos page, using Nextcloud core file events, a
+  JSON cache for efficient updates and a CLI command (`occ collectives_todos:init <collectives-id>`)
+  to build the page for existing collectives. Unit tests cover all core services and listeners.
 
 - App store release packaging: a GitHub Action (`.github/workflows/release.yml`) builds a
   store-conformant `collectives_todos-vX.Y.Z.tar.gz` (single top-level folder named after the app
@@ -15,18 +22,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and signature to the GitHub release. Tag and app version must match, and `appinfo/info.xml` is
   validated against the app store schema. With the `APPSTORE_TOKEN` secret set, the release is
   also published to the Nextcloud app store automatically.
-
-### Changed
-
-- Version reset from 1.0.0 to 0.1.0.
-- `appinfo/info.xml` brought into the form the Nextcloud app store validates: added the required
-  `<summary>`, renamed `<license>` to `<licence>` and `<depends>` to `<dependencies>`, and dropped
-  the `<app>collectives</app>` element (not part of the store or server schema, so it was never
-  read; the Collectives dependency is enforced at runtime via `IAppManager`). No runtime behavior
-  changes on servers already running the app.
-
-### Added
-
 - Per-collective Enable/Disable button in the settings page's per-collective table. Disabling
   deletes the collective's Todos page (to trash) and stops generating or reverse-syncing it; the
   checkbox cache keeps being maintained, so enabling regenerates a consistent page immediately.
@@ -46,29 +41,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   untrashed and deleted directly: Collectives' `PageMapper::deleteByFileId` only removes rows that
   were moved to trash and silently ignored the hard-deleted page's row, leaking one on every disable
   cycle.
-
-### Fixed
-
-- Reverse-syncing a tick made in the Collectives editor: the Text editor strips trailing whitespace
-  on save, so a Todos page checkbox whose source line ends in spaces no longer matched the cached
-  source text and the tick was silently dropped. Checkbox texts are now trimmed when parsed, and the
-  reverse sync also tolerates untrimmed legacy cache entries.
-- Deleting the Todos page recreates it immediately. Collectives moves deleted pages to trash; the
-  trash move is complete before the delete event fires and collectives paths are never locked, so no
-  delayed recreation is needed.
-- The emoji of a freshly (re)created Todos page is now really written: inserting the missing
-  `collectives_pages` row failed because its `last_user_id` column is NOT NULL. The app-created row
-  now carries an empty user id (the frontend hides the "last edited" info for such pages), like
-  untouched pages.
-
-### Added
-
 - Todos page emoji config item (default none, per-collective override): the emoji is written to the
   Todos page's `collectives_pages` row like the emoji of any other Collectives page and rendered in
   the page tree. Validated with the Collectives app's own emoji validation; the settings page ships
   a curated emoji picker built with plain HTML/JS (no new dependencies), and any emoji can be pasted
   directly. The emoji is enforced on every Todos page regeneration and on settings save.
-
 - Admin settings page (Settings → Admin → Collectives Todos) with instance-wide defaults and
   per-collective overrides for three config items: the Todos page name (default `Todos`), the
   position of the Todos page in the Collectives page tree (always on top / always on bottom /
@@ -83,11 +60,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   already exists in a collective, the rename is skipped and reported on the settings page.
 - When the checkbox limit is reached, further checkboxes are not cached and the Todos page renders a
   `*(list truncated by the settings limit)*` note under the affected page's section.
-- Minimum Nextcloud version raised from 25 to 27 (the admin settings controller uses the
-  `AuthorizedAdminSetting` attribute introduced in 27).
-
-### Added
-
 - Bidirectional checkbox sync: ticking or unticking a checkbox on the Todos page now also updates
   the checkbox on the source page it was aggregated from. Sections of the Todos page are resolved to
   source pages by the page file id in the heading link URL (title as fallback), and checkboxes are
@@ -105,8 +77,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Todos page is now reset on every regeneration, so open editors reload the fresh content. Unsaved
   manual edits to the Todos page are discarded by design.
 
+### Changed
+
+- Minimum Nextcloud version raised from 25 to 27 (the admin settings controller uses the
+  `AuthorizedAdminSetting` attribute introduced in 27).
+- `appinfo/info.xml` brought into the form the Nextcloud app store validates: added the required
+  `<summary>`, renamed `<license>` to `<licence>` and `<depends>` to `<dependencies>`, and dropped
+  the `<app>collectives</app>` element (not part of the store or server schema, so it was never
+  read; the Collectives dependency is enforced at runtime via `IAppManager`). No runtime behavior
+  changes on servers already running the app.
+
 ### Fixed
 
+- Reverse-syncing a tick made in the Collectives editor: the Text editor strips trailing whitespace
+  on save, so a Todos page checkbox whose source line ends in spaces no longer matched the cached
+  source text and the tick was silently dropped. Checkbox texts are now trimmed when parsed, and the
+  reverse sync also tolerates untrimmed legacy cache entries.
+- Deleting the Todos page recreates it immediately. Collectives moves deleted pages to trash; the
+  trash move is complete before the delete event fires and collectives paths are never locked, so no
+  delayed recreation is needed.
+- The emoji of a freshly (re)created Todos page is now really written: inserting the missing
+  `collectives_pages` row failed because its `last_user_id` column is NOT NULL. The app-created row
+  now carries an empty user id (the frontend hides the "last edited" info for such pages), like
+  untouched pages.
 - Deleting a page did not clean up the Todos page: the deleted page's section and checkboxes stayed
   listed. A Collectives page is a folder (the index page is its Readme.md, subpages are further
   files in it), and deleting it only emits a filesystem event for the folder itself - the markdown
@@ -143,14 +136,3 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   failures instead of breaking saves.
 - `collectives_todos:init` now scans all pages of a collectives and accepts the collectives id as
   used by the Collectives app.
-
-## [0.1.0] - 2026-10-01
-
-### Added
-
-- Initial release of Collectives Todos app
-- Event-driven checkbox aggregation using Nextcloud core file events
-- Auto-generated Todos.md page per collectives
-- JSON cache for efficient updates
-- CLI command for initializing existing collectives
-- Unit tests for all core services and listeners
