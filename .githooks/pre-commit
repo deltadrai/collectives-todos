@@ -1,0 +1,33 @@
+#!/bin/sh
+# Lint GitHub Actions workflow files with actionlint before committing.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# actionlint is looked up on PATH and, if missing, downloaded to
+# ~/.cache/actionlint on first use. If it cannot be obtained (e.g. no
+# network), the hook warns and lets the commit through.
+
+set -eu
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.yml' '*.yaml')
+staged=$(printf '%s\n' "$staged" | grep '^\.github/workflows/' || true)
+[ -n "$staged" ] || exit 0
+
+if command -v actionlint >/dev/null 2>&1; then
+    ACTIONLINT=actionlint
+else
+    ACTIONLINT="$HOME/.cache/actionlint/actionlint"
+    if [ ! -x "$ACTIONLINT" ]; then
+        echo "actionlint not found, downloading to ~/.cache/actionlint ..."
+        mkdir -p "$HOME/.cache/actionlint"
+        if ! curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash \
+                | bash -s -- latest "$HOME/.cache/actionlint" >/dev/null 2>&1; then
+            echo "warning: could not obtain actionlint, skipping workflow lint" >&2
+            exit 0
+        fi
+    fi
+fi
+
+# actionlint reads the files from the working tree, so it lints what is
+# staged only if the working tree matches the index (the common case).
+# shellcheck disable=SC2086
+exec "$ACTIONLINT" $staged

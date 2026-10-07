@@ -75,6 +75,9 @@ PHP 8.0+, Nextcloud 27–34, depends on the `collectives` app.
 
 - Run `./tests/run.sh` (all) or `./tests/run.sh tests/Unit`. Add/adjust a unit test for every
   bug fix or service change; integration tests for cross-app behavior with `collectives`.
+- Enable the repo hooks once per clone (`git config core.hooksPath .githooks`): `pre-commit`
+  lints staged `.github/workflows/*.yml` with `actionlint` (auto-downloaded if missing). Run
+  `actionlint` before pushing workflow changes.
 - Deploy target: podman container `systemd-nextcloud`, app dir `/var/www/html/apps/`.
   See README for manual deployment steps; do not run servers from this repo.
 

@@ -118,6 +118,17 @@ default and can be overridden per collective (an empty field uses the default):
 
 Issues and feature requests should be reported to the app maintainer.
 
+## Development
+
+Git hooks live in `.githooks/` and are not enabled automatically. Once per clone:
+
+    git config core.hooksPath .githooks
+
+The `pre-commit` hook lints staged GitHub Actions workflow files with
+[actionlint](https://github.com/rhysd/actionlint) (looked up on `PATH`, auto-downloaded to
+`~/.cache/actionlint` on first use). If the binary cannot be obtained, the hook warns and lets
+the commit through.
+
 ## License
 
 AGPL-3.0-or-later
