@@ -17,8 +17,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq libxml2-utils
-          curl -fsSL -o /tmp/info.xsd https://apps.nextcloud.com/schema/apps/info.xsd
-          xmllint --noout --schema /tmp/info.xsd appinfo/info.xml
+          xmllint --noout --schema .github/schema/info.xsd appinfo/info.xml
 
       - name: Check tag matches app version
         run: |
