@@ -4,7 +4,7 @@
     <name>Collectives Todos</name>
     <summary>See all your to-dos from your collectives in one place</summary>
     <description>See all your to-dos from your collectives in one place. Check something off in the Todos page and it is also checked off on the page it came from.</description>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Markus Winter @ deltadrai gmbh</author>
     <namespace>CollectiveTodos</namespace>
