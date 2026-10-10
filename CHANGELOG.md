@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- App store screenshots: four screenshots of the Todos page (committed under `screenshots/`) are
+  published to the Nextcloud app store via `<screenshot>` entries in `appinfo/info.xml` and shown
+  in the README.
+
 ## [0.1.0] - 2026-10-07
 
 ### Added
