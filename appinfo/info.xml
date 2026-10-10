@@ -15,6 +15,10 @@
     <website>https://deltadrai.github.io/collectives-todos/</website>
     <bugs>https://github.com/deltadrai/collectives-todos/issues</bugs>
     <repository>https://github.com/deltadrai/collectives-todos</repository>
+    <screenshot>https://raw.githubusercontent.com/deltadrai/collectives-todos/main/screenshots/Screenshot--2026-10-10--181052-an.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/deltadrai/collectives-todos/main/screenshots/Screenshot--2026-10-10--181350-an.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/deltadrai/collectives-todos/main/screenshots/Screenshot--2026-10-10--181551-an.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/deltadrai/collectives-todos/main/screenshots/Screenshot--2026-10-10--181728-an.png</screenshot>
     <dependencies>
         <nextcloud min-version="27" max-version="34" />
     </dependencies>
