@@ -29,6 +29,17 @@ PHP 8.0+, Nextcloud 27–35, depends on the `collectives` app.
   `IL10n` (`$l->t()`). No inline JS or inline event handlers (CSP).
 - Indentation/style: match the file you are editing.
 
+## GIT
+
+- for every task in this project branch out with `<semantic prefix>/<task-slug>`
+- when done and instructed to `commit` or `push`
+  - push the task's branch to origin
+  - crate a PR
+  - swicth to local main
+  - merge the PR and delete the branch
+  - pull new origin into main
+  - clean up local branches that are PR'ed
+
 ## Depending on other apps (`collectives`)
 
 - Declare in `appinfo/info.xml` under `<depends>`: `<app>collectives</app>` (add `min-version`/
