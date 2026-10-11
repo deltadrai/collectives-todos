@@ -123,6 +123,55 @@ function demoVideoScrub(keepControls) {
 }
 
 /**
+ * The scroll-down hint on the hero's bottom edge: a light ring flashes
+ * outward from the circle and the chevron bobs, until the user scrolls
+ * past the hero. The pulse is an autonomous looping animation, so it runs
+ * only without reduced motion.
+ */
+function scrollHint() {
+    const hint = document.getElementById('scroll-hint');
+    const chevron = hint ? hint.querySelector('svg') : null;
+    if (!hint || !chevron) {
+        return null;
+    }
+
+    gsap.fromTo(hint,
+        { boxShadow: '0 8px 24px rgba(34,45,50,0.18), 0 0 0 0 rgba(0,130,201,0.45)' },
+        {
+            boxShadow: '0 8px 24px rgba(34,45,50,0.18), 0 0 0 16px rgba(0,130,201,0)',
+            duration: 1.4,
+            ease: 'power2.out',
+            repeat: -1,
+            repeatDelay: 0.5,
+        });
+
+    gsap.fromTo(chevron, { y: -2 }, {
+        y: 3,
+        duration: 0.9,
+        ease: 'power1.inOut',
+        yoyo: true,
+        repeat: -1,
+    });
+}
+
+/**
+ * Clicking the scroll-down hint scrolls to the features section, smoothly
+ * unless the user prefers reduced motion. Runs in both motion modes.
+ */
+function scrollHintClick() {
+    const hint = document.getElementById('scroll-hint');
+    const target = document.getElementById('features');
+    if (!hint || !target) {
+        return;
+    }
+    hint.addEventListener('click', (event) => {
+        event.preventDefault();
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+    });
+}
+
+/**
  * Scroll-triggered reveals for section headers, feature/requirement cards
  * and screenshot figures, plus a hover effect that grows the screenshots
  * past their frames.
@@ -195,11 +244,15 @@ function init() {
 
     const mm = gsap.matchMedia();
 
-    // Autonomous animations (entrance, demo loop, scroll reveals) only run
-    // when the user has not requested reduced motion.
+    // The hint's click behavior is user-initiated, so it runs in both modes.
+    scrollHintClick();
+
+    // Autonomous animations (entrance, demo loop, scroll reveals, hint pulse)
+    // only run when the user has not requested reduced motion.
     mm.add('(prefers-reduced-motion: no-preference)', () => {
         heroEntrance();
         todoDemoLoop();
+        scrollHint();
         scrollReveals();
     });
 }
