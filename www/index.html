@@ -6,32 +6,9 @@
     <title>Collectives Todos — Every to-do from your Collectives on a single page</title>
     <meta name="description" content="Collectives Todos gathers every markdown checkbox from every page of your Nextcloud Collectives onto one central Todos page — with two-way sync back to the source pages. Open source, by deltadrai.">
     <link rel="icon" href="img/app.svg" type="image/svg+xml">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        nc: {
-                            blue: '#0082c9',
-                            'blue-dark': '#00639a',
-                            'blue-deep': '#004a70',
-                            bg: '#f0f4f8',
-                            card: '#ffffff',
-                            text: '#222d32',
-                            muted: '#6b7a85',
-                            line: '#e3e9ee',
-                        },
-                    },
-                    fontFamily: {
-                        sans: ['-apple-system', 'BlinkMacSystemFont', "'Segoe UI'", 'Roboto', "'Helvetica Neue'", 'Arial', 'sans-serif'],
-                    },
-                },
-            },
-        };
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+    <link rel="stylesheet" href="css/site.css">
+    <script src="js/vendor/gsap.min.js" defer></script>
+    <script src="js/vendor/ScrollTrigger.min.js" defer></script>
 </head>
 <body class="bg-nc-bg text-nc-text font-sans antialiased">
 
@@ -326,6 +303,7 @@
                     <a class="transition hover:text-nc-blue" href="https://github.com/deltadrai/collectives-todos/issues" rel="noopener">Issues</a>
                     <a class="transition hover:text-nc-blue" href="https://apps.nextcloud.com/apps/collectives_todos" rel="noopener">Nextcloud app store</a>
                     <a class="transition hover:text-nc-blue" href="https://deltadr.ai/impressum.html" rel="noopener">Impressum</a>
+                    <a class="transition hover:text-nc-blue" href="privacy.html">Privacy</a>
                 </nav>
             </div>
             <div class="border-t border-nc-line py-4 text-center text-xs text-nc-muted">

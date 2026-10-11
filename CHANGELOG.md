@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Privacy notice for the product page (`www/privacy.html`), linked from the footer: controller,
+  GitHub Pages hosting, and what the page does not do (no cookies, no analytics, no third-party
+  requests).
+
+### Changed
+
+- The product page is fully self-contained: GSAP (3.13.0) is vendored into `www/js/vendor/` and the
+  Tailwind Play CDN is replaced by a compiled stylesheet (`www/css/site.css`, rebuilt from
+  `css/tailwind.src.css` via `tailwind.config.js`). The page no longer contacts any third party
+  except its GitHub Pages host.
+
 ## [0.2.1] - 2026-10-11
 
 ### Added
