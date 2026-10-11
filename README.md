@@ -3,6 +3,19 @@
 A Nextcloud app that aggregates markdown checkboxes across all pages in a Collectives into a central
 "Todos" page.
 
+A Nextcloud app that aggregates markdown checkboxes across all pages in a Collectives into a central
+"Todos" page.
+
+## Screenshots
+
+![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181052-an.png)
+![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181350-an.png)
+![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181551-an.png)
+![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181728-an.png)
+
+The same screenshots are published to the Nextcloud app store via `<screenshot>` entries in
+`appinfo/info.xml`.
+
 ## Features
 
 - Automatically scans all pages in a Collectives for markdown checkboxes (`- [ ]` / `- [x]`)
@@ -39,13 +52,6 @@ Once installed and enabled, the app works automatically:
 3. All checkboxes from all pages are aggregated in one place
 4. Ticking a checkbox on the "Todos" page updates the checkbox on its source page; the "Todos" page
    is then regenerated from the updated pages
-
-## Screenshots
-
-![Todos page in a collective](screenshots/Screenshot--2026-10-10--181052-an.png)
-![Todos page in a collective](screenshots/Screenshot--2026-10-10--181350-an.png)
-![Todos page in a collective](screenshots/Screenshot--2026-10-10--181551-an.png)
-![Todos page in a collective](screenshots/Screenshot--2026-10-10--181728-an.png)
 
 ## CLI Commands
 
