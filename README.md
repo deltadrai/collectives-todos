@@ -26,8 +26,7 @@ The app is not yet published to the Nextcloud app store. Deploy it manually, or 
 `collectives_todos-vX.Y.Z.tar.gz` archive attached to a GitHub release (built by
 `.github/workflows/release.yml` on every `v*` tag):
 
-1. Copy `apps/collectives_todos/` into the Nextcloud `apps/` directory (for this server: into the
-   `systemd-nextcloud` container at `/var/www/html/apps/`)
+1. Copy `apps/collectives_todos/` into the Nextcloud `apps/` directory
 2. Make sure the files are owned by the web server user (`www-data`)
 3. Enable it: `php occ app:enable collectives_todos`
 
@@ -135,6 +134,20 @@ The `pre-commit` hook lints staged GitHub Actions workflow files with
 [actionlint](https://github.com/rhysd/actionlint) (looked up on `PATH`, auto-downloaded to
 `~/.cache/actionlint` on first use). If the binary cannot be obtained, the hook warns and lets
 the commit through.
+
+### Functional test harness
+
+`tests/functional/harness.sh` boots a disposable Nextcloud (SQLite, admin/admin, pinned to the
+newest supported major, override with `NC_IMAGE=...`), installs the latest Collectives from the
+app store, deploys the local working tree of this app, and seeds a collective from the committed
+fixtures in `tests/functional/fixtures/pages/` (2 pages with 3 subpages each):
+
+    tests/functional/harness.sh up
+    tests/functional/harness.sh seed
+    tests/functional/harness.sh smoke
+
+`smoke` asserts that the generated Todos page aggregates every checkbox and that ticking a
+checkbox on it is reverse-synced to the source page. Teardown: `tests/functional/harness.sh down`.
 
 ## License
 
