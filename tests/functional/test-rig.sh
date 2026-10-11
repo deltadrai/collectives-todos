@@ -1,11 +1,11 @@
 #!/bin/sh
-# Functional test harness for the collectives_todos app.
+# Functional test rig for the collectives_todos app.
 #
 # Boots the latest Nextcloud (SQLite, admin/admin, onboarding skipped) plus the
 # latest Collectives in a podman container, and deploys the local working tree
 # of this app into it. Seeding and smoke checks are added by later subcommands.
 #
-# Usage: tests/functional/harness.sh up|down|clean|status|seed|smoke|verify
+# Usage: tests/functional/test-rig.sh up|down|clean|status|seed|smoke|verify
 set -e
 
 CONTAINER=collectives-todos-functest

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Run the collectives_todos PHPUnit tests inside a podman container with a Nextcloud
-# install. Default container: the one started by tests/functional/harness.sh;
+# install. Default container: the one started by tests/functional/test-rig.sh;
 # override with CONTAINER=... (phpunit.phar is downloaded into the container if
 # missing). Usage: tests/run.sh [phpunit args, repo-relative, e.g. tests/Unit]
 set -e

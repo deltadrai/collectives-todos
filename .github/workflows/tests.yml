@@ -19,14 +19,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Boot Nextcloud + Collectives + app (functional harness)
-        run: tests/functional/harness.sh up
+      - name: Boot Nextcloud + Collectives + app (functional test rig)
+        run: tests/functional/test-rig.sh up
 
       - name: Seed fixture collective
-        run: tests/functional/harness.sh seed
+        run: tests/functional/test-rig.sh seed
 
       - name: Smoke checks (aggregation + reverse sync)
-        run: tests/functional/harness.sh smoke
+        run: tests/functional/test-rig.sh smoke
 
       - name: PHPUnit (Unit + Integration)
         run: tests/run.sh

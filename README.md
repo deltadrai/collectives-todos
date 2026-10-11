@@ -142,32 +142,32 @@ The `pre-commit` hook lints staged GitHub Actions workflow files with
 `~/.cache/actionlint` on first use). If the binary cannot be obtained, the hook warns and lets
 the commit through.
 
-### Functional test harness
+### Functional test rig
 
-`tests/functional/harness.sh` boots a disposable Nextcloud (SQLite, admin/admin, English, pinned to
+`tests/functional/test-rig.sh` boots a disposable Nextcloud (SQLite, admin/admin, English, pinned to
 the newest supported major, override with `NC_IMAGE=...`), installs the latest Collectives from the
 app store, deploys the local working tree of this app, and seeds a collective from the committed
 fixtures in `tests/functional/fixtures/pages/` (2 pages with 3 subpages each, each page carrying
 its fixture emoji):
 
-    tests/functional/harness.sh up
-    tests/functional/harness.sh seed
-    tests/functional/harness.sh smoke
+    tests/functional/test-rig.sh up
+    tests/functional/test-rig.sh seed
+    tests/functional/test-rig.sh smoke
 
 `smoke` asserts that the generated Todos page aggregates every checkbox and that ticking a
-checkbox on it is reverse-synced to the source page. Teardown: `tests/functional/harness.sh down`.
+checkbox on it is reverse-synced to the source page. Teardown: `tests/functional/test-rig.sh down`.
 
 For one-command verification (boot or reuse the container, seed, smoke, PHPUnit — `phpunit.phar`
 is downloaded into the container automatically when missing):
 
-    tests/functional/harness.sh verify
+    tests/functional/test-rig.sh verify
 
 On success the container stays up at `http://127.0.0.1:8080` (admin/admin) for manual
 verification; on failure it stays up for debugging.
 
 ### Continuous integration
 
-`.github/workflows/tests.yml` runs the same checks (harness boot, seed, smoke, PHPUnit) against
+`.github/workflows/tests.yml` runs the same checks (test rig boot, seed, smoke, PHPUnit) against
 the newest supported Nextcloud on every PR and push to main.
 
 ## License
