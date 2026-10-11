@@ -16,6 +16,7 @@ back to its source page:
 ![A source page with its markdown checkboxes](www/screenshots/steps-5-6.png)
 ![A checkbox being ticked on the source page](www/screenshots/steps-7-8.png)
 ![The regenerated Todos page with the tick synced](www/screenshots/step-9.png)
+![The admin settings page](www/screenshots/admin.png)
 
 The same screenshots are published to the Nextcloud app store via `<screenshot>` entries in
 `appinfo/info.xml`. The product page (`www/`) also embeds the demo video
@@ -40,9 +41,15 @@ The same screenshots are published to the Nextcloud app store via `<screenshot>`
 
 ## Installation
 
-The app is not yet published to the Nextcloud app store. Deploy it manually, or install the
-`collectives_todos-vX.Y.Z.tar.gz` archive attached to a GitHub release (built by
-`.github/workflows/release.yml` on every `v*` tag):
+The app is published on the [Nextcloud app store](https://apps.nextcloud.com/apps/collectives_todos):
+install and enable it from your Nextcloud's Apps settings, or via the console:
+
+```bash
+php occ app:install collectives_todos
+```
+
+Alternatively, deploy it manually or install the `collectives_todos-vX.Y.Z.tar.gz` archive attached to a
+GitHub release (built by `.github/workflows/release.yml` on every `v*` tag):
 
 1. Copy `apps/collectives_todos/` into the Nextcloud `apps/` directory
 2. Make sure the files are owned by the web server user (`www-data`)
