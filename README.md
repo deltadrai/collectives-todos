@@ -139,6 +139,20 @@ The `pre-commit` hook lints staged GitHub Actions workflow files with
 `~/.cache/actionlint` on first use). If the binary cannot be obtained, the hook warns and lets
 the commit through.
 
+### Functional test harness
+
+`tests/functional/harness.sh` boots a disposable Nextcloud (SQLite, admin/admin, pinned to the
+newest supported major, override with `NC_IMAGE=...`), installs the latest Collectives from the
+app store, deploys the local working tree of this app, and seeds a collective from the committed
+fixtures in `tests/functional/fixtures/pages/` (2 pages with 3 subpages each):
+
+    tests/functional/harness.sh up
+    tests/functional/harness.sh seed
+    tests/functional/harness.sh smoke
+
+`smoke` asserts that the generated Todos page aggregates every checkbox and that ticking a
+checkbox on it is reverse-synced to the source page. Teardown: `tests/functional/harness.sh down`.
+
 ## License
 
 AGPL-3.0-or-later
