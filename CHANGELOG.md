@@ -15,15 +15,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - One-command local verification: `tests/functional/harness.sh verify` boots the newest supported
   Nextcloud, installs Collectives and the local working tree, seeds the fixture collective, runs
   the smoke checks and the PHPUnit suite, and leaves the server running at
-  `http://127.0.0.1:8080` (admin/admin) for manual verification when everything is green.
+  `http://127.0.0.1:8080` (admin/admin) for manual verification when everything is green. When
+  reusing an already-running container, it redeploys the current working tree and re-applies the
+  English language defaults first.
+
+- The functional test harness now defaults to English (`default_language`/`default_locale` set to
+  `en`/`en_US`, likewise for the admin user) and seeds every fixture page with a fitting emoji via
+  the Collectives `setEmoji` API; the smoke checks assert those emojis and the Todos page emoji.
 
 - Continuous integration: `.github/workflows/tests.yml` runs the harness smoke checks and the
   PHPUnit suite against the newest supported Nextcloud on every PR and push to main.
 
 ### Changed
 
-- `tests/run.sh` downloads `phpunit.phar` into the container automatically when it is missing,
-  instead of aborting.
+- The default Todos page emoji is now 📝 (previously none). Existing instances without a stored
+  setting pick it up on the next regeneration of a Todos page; the emoji stays configurable
+  instance-wide and per collective, and empty still means no emoji.
+
+- `tests/run.sh` downloads `phpunit.phar` (pinned to 13.4.1, sha256-verified) into the container
+  automatically when it is missing, instead of aborting.
 
 ## [0.1.1] - 2026-10-10
 

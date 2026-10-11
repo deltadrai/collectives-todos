@@ -40,10 +40,11 @@ class SettingsService
 	];
 
 	public const DEFAULT_TODOS_PAGE_NAME = 'Todos';
+	public const DEFAULT_TODOS_PAGE_EMOJI = '📝';
 
 	private const DEFAULTS = [
 		self::KEY_TODOS_PAGE_NAME => self::DEFAULT_TODOS_PAGE_NAME,
-		self::KEY_TODOS_PAGE_EMOJI => '',
+		self::KEY_TODOS_PAGE_EMOJI => self::DEFAULT_TODOS_PAGE_EMOJI,
 		self::KEY_TREE_POSITION => self::POSITION_TOP,
 		self::KEY_MAX_CHECKBOXES => '0',
 		self::KEY_ENABLED => self::VALUE_ENABLED,

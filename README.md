@@ -89,8 +89,9 @@ default and can be overridden per collective (an empty field uses the default):
 - **Todos page emoji**: the emoji is written to the Todos page's `collectives_pages` row, exactly
   like the emoji of any other Collectives page, and rendered in the page tree. It is validated the
   same way Collectives validates page emoji (single emoji, max 8 characters). The settings page
-  offers a small curated picker, or paste any emoji directly; empty means no emoji. As with the tree
-  position, manual emoji changes made in Collectives are re-asserted on the next page save.
+  offers a small curated picker, or paste any emoji directly; the default is 📝, and empty means no
+  emoji. As with the tree position, manual emoji changes made in Collectives are re-asserted on the
+  next page save.
 - **Maximum checkboxes**: once the limit is reached, further checkboxes are not cached and the Todos
   page shows a `*(list truncated by the settings limit)*` note under the affected page's section.
 - **Enabled**: the Defaults section has a global Enable/Disable button (the master switch), the
@@ -143,10 +144,11 @@ the commit through.
 
 ### Functional test harness
 
-`tests/functional/harness.sh` boots a disposable Nextcloud (SQLite, admin/admin, pinned to the
-newest supported major, override with `NC_IMAGE=...`), installs the latest Collectives from the
+`tests/functional/harness.sh` boots a disposable Nextcloud (SQLite, admin/admin, English, pinned to
+the newest supported major, override with `NC_IMAGE=...`), installs the latest Collectives from the
 app store, deploys the local working tree of this app, and seeds a collective from the committed
-fixtures in `tests/functional/fixtures/pages/` (2 pages with 3 subpages each):
+fixtures in `tests/functional/fixtures/pages/` (2 pages with 3 subpages each, each page carrying
+its fixture emoji):
 
     tests/functional/harness.sh up
     tests/functional/harness.sh seed

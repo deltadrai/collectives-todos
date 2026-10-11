@@ -24,7 +24,7 @@ class PanelDataServiceTest extends TestCase
 		$this->settings = $this->createMock(SettingsService::class);
 		$this->settings->method('getDefaults')->willReturn([
 			SettingsService::KEY_TODOS_PAGE_NAME => 'Todos',
-			SettingsService::KEY_TODOS_PAGE_EMOJI => '',
+			SettingsService::KEY_TODOS_PAGE_EMOJI => '📝',
 			SettingsService::KEY_TREE_POSITION => 'top',
 			SettingsService::KEY_MAX_CHECKBOXES => 0,
 		]);
@@ -69,7 +69,7 @@ class PanelDataServiceTest extends TestCase
 		$this->assertSame('/apps/collectives_todos/settings', $data['form_action']);
 		$this->assertSame([], $data['errors']);
 		$this->assertSame('Todos', $data['defaults']['todos_page_name']);
-		$this->assertSame('', $data['defaults']['todos_page_emoji']);
+		$this->assertSame('📝', $data['defaults']['todos_page_emoji']);
 		$this->assertSame('top', $data['defaults']['tree_position']);
 		$this->assertSame(0, $data['defaults']['max_checkboxes']);
 		$this->assertTrue($data['defaults']['enabled']);

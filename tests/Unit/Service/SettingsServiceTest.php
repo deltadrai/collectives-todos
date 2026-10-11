@@ -204,8 +204,8 @@ class SettingsServiceTest extends TestCase
 
 		$defaults = $this->service->getDefaults();
 
-		$this->assertSame('', $defaults['todos_page_emoji']);
-		$this->assertSame('', $this->service->resolve(8, SettingsService::KEY_TODOS_PAGE_EMOJI));
+		$this->assertSame('📝', $defaults['todos_page_emoji']);
+		$this->assertSame('📝', $this->service->resolve(8, SettingsService::KEY_TODOS_PAGE_EMOJI));
 	}
 
 	public function testEnabledByDefault(): void
