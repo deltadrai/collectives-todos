@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-11
+
+### Added
+
+- The admin settings screenshot as the sixth app store screenshot (`<screenshot>` entry in
+  `appinfo/info.xml`), shown on the product page next to the last walkthrough step and in the README.
+
+- Prominent "Get it from the Nextcloud app store" call to action on the product page hero (plus a
+  footer link), pointing at https://apps.nextcloud.com/apps/collectives_todos.
+
+### Changed
+
+- The README installation section now points to the app store (the app is published there) with the
+  manual deployment kept as an alternative.
+
 ## [0.2.0] - 2026-10-11
 
 ### Added

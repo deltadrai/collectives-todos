@@ -16,7 +16,7 @@ Two-way sync: tick a task off on the Todos page and it is checked off on its sou
 Yours to configure: admins can choose the Todos page name, its position in the page tree, an emoji — and switch the app on or off, globally or per collective.
 
 Requires Nextcloud 27–35 and the Collectives app. Developed by deltadrai gmbh as open source under AGPL-3.0-or-later.</description>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Markus Winter @ deltadrai gmbh</author>
     <namespace>CollectiveTodos</namespace>
@@ -32,6 +32,7 @@ Requires Nextcloud 27–35 and the Collectives app. Developed by deltadrai gmbh 
     <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/steps-5-6.png</screenshot>
     <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/steps-7-8.png</screenshot>
     <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/step-9.png</screenshot>
+    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/admin.png</screenshot>
     <dependencies>
         <nextcloud min-version="27" max-version="35" />
     </dependencies>
