@@ -36,8 +36,7 @@ The app is not yet published to the Nextcloud app store. Deploy it manually, or 
 `collectives_todos-vX.Y.Z.tar.gz` archive attached to a GitHub release (built by
 `.github/workflows/release.yml` on every `v*` tag):
 
-1. Copy `apps/collectives_todos/` into the Nextcloud `apps/` directory (for this server: into the
-   `systemd-nextcloud` container at `/var/www/html/apps/`)
+1. Copy `apps/collectives_todos/` into the Nextcloud `apps/` directory
 2. Make sure the files are owned by the web server user (`www-data`)
 3. Enable it: `php occ app:enable collectives_todos`
 

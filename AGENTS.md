@@ -14,7 +14,8 @@ PHP 8.0+, Nextcloud 27–34, depends on the `collectives` app.
 - `lib/Listener` — `IEventListener` implementations; validate event type, delegate to services.
 - `lib/Settings` — admin settings classes (`ISection`/`IDelegatedSettings`).
 - `templates/` — server-side PHP templates. `js/` — plain JS, loaded via `\OCP\Util::addScript`.
-- `tests/` — PHPUnit Unit + Integration; run with `tests/run.sh` (podman container `systemd-nextcloud`).
+- `tests/` — PHPUnit Unit + Integration; run with `tests/run.sh` (podman container, override with
+  `CONTAINER=...`). Functional harness: `tests/functional/harness.sh` (see README).
 
 ## Conventions
 
@@ -78,8 +79,9 @@ PHP 8.0+, Nextcloud 27–34, depends on the `collectives` app.
 - Enable the repo hooks once per clone (`git config core.hooksPath .githooks`): `pre-commit`
   lints staged `.github/workflows/*.yml` with `actionlint` (auto-downloaded if missing). Run
   `actionlint` before pushing workflow changes.
-- Deploy target: podman container `systemd-nextcloud`, app dir `/var/www/html/apps/`.
-  See README for manual deployment steps; do not run servers from this repo.
+- Deploy manually into a Nextcloud instance's `apps/` directory (see README for steps). For a
+  disposable instance with Collectives and this app preinstalled, use `tests/functional/harness.sh`.
+  Do not run servers from this repo.
 
 ## When stuck
 
