@@ -2,7 +2,7 @@
 
 Nextcloud app `collectives_todos` (namespace `OCA\CollectiveTodos`): aggregates markdown checkboxes
 across Collectives pages into a "Todos" page, with reverse-sync back to source pages.
-PHP 8.0+, Nextcloud 27–34, depends on the `collectives` app.
+PHP 8.0+, Nextcloud 27–35, depends on the `collectives` app.
 
 ## Project layout
 
@@ -15,7 +15,7 @@ PHP 8.0+, Nextcloud 27–34, depends on the `collectives` app.
 - `lib/Settings` — admin settings classes (`ISection`/`IDelegatedSettings`).
 - `templates/` — server-side PHP templates. `js/` — plain JS, loaded via `\OCP\Util::addScript`.
 - `tests/` — PHPUnit Unit + Integration; run with `tests/run.sh` (podman container, override with
-  `CONTAINER=...`). Functional harness: `tests/functional/harness.sh` (see README).
+  `CONTAINER=...`). Functional test rig: `tests/functional/test-rig.sh` (see README).
 
 ## Conventions
 
@@ -80,7 +80,7 @@ PHP 8.0+, Nextcloud 27–34, depends on the `collectives` app.
   lints staged `.github/workflows/*.yml` with `actionlint` (auto-downloaded if missing). Run
   `actionlint` before pushing workflow changes.
 - Deploy manually into a Nextcloud instance's `apps/` directory (see README for steps). For a
-  disposable instance with Collectives and this app preinstalled, use `tests/functional/harness.sh`.
+  disposable instance with Collectives and this app preinstalled, use `tests/functional/test-rig.sh`.
   Do not run servers from this repo.
 
 ## When stuck

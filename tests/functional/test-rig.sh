@@ -1,20 +1,20 @@
 #!/bin/sh
-# Functional test harness for the collectives_todos app.
+# Functional test rig for the collectives_todos app.
 #
 # Boots the latest Nextcloud (SQLite, admin/admin, onboarding skipped) plus the
 # latest Collectives in a podman container, and deploys the local working tree
 # of this app into it. Seeding and smoke checks are added by later subcommands.
 #
-# Usage: tests/functional/harness.sh up|down|clean|status|seed|smoke
+# Usage: tests/functional/test-rig.sh up|down|clean|status|seed|smoke|verify
 set -e
 
 CONTAINER=collectives-todos-functest
 PORT=8080
 BASE_URL="http://127.0.0.1:${PORT}"
-# Pinned to the newest Nextcloud major supported by appinfo/info.xml (max 34);
+# Pinned to the newest Nextcloud major supported by appinfo/info.xml (max 35);
 # `nextcloud:latest` may be newer and the app refuses to enable there.
 # Override with NC_IMAGE=... to test against a different version.
-NC_IMAGE="${NC_IMAGE:-docker.io/library/nextcloud:34-apache}"
+NC_IMAGE="${NC_IMAGE:-docker.io/library/nextcloud:35-apache}"
 
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 FIXTURES="$APP_DIR/tests/functional/fixtures/pages"
@@ -41,6 +41,41 @@ container_exists() {
 	podman ps -a --format '{{.Names}}' | grep -qx "$CONTAINER"
 }
 
+wait_for_web() {
+	echo "Waiting for Apache to come up ..."
+	i=0
+	while [ "$i" -lt 60 ]; do
+		if curl -s -o /dev/null "$BASE_URL" 2>/dev/null; then
+			return 0
+		fi
+		i=$((i + 1))
+		sleep 1
+	done
+	echo "Timed out waiting for Apache. See: podman logs $CONTAINER" >&2
+	exit 1
+}
+
+set_english() {
+	echo "Setting the default language to English ..."
+	occ config:system:set default_language --value en
+	occ config:system:set default_locale --value en_US
+	occ user:setting admin core lang en
+	occ user:setting admin core locale en_US
+}
+
+deploy_app() {
+	echo "Deploying the local working tree of collectives_todos ..."
+	# A plain podman cp onto an existing target nests the copy, so start clean
+	podman exec "$CONTAINER" rm -rf /tmp/collectives_todos_src
+	podman cp "$APP_DIR" "$CONTAINER":/tmp/collectives_todos_src >/dev/null
+	podman exec "$CONTAINER" sh -c \
+		'rm -rf /var/www/html/apps/collectives_todos && cp -r /tmp/collectives_todos_src /var/www/html/apps/collectives_todos && rm -rf /var/www/html/apps/collectives_todos/.git && chown -R www-data:www-data /var/www/html/apps/collectives_todos'
+	# A graceful reload flushes the webserver opcache, which otherwise serves
+	# the previously deployed app classes for up to opcache.revalidate_freq (60s)
+	podman exec "$CONTAINER" apachectl -k graceful
+	wait_for_web
+}
+
 up() {
 	if container_exists; then
 		echo "Container $CONTAINER already exists. Run '$0 down' first." >&2
@@ -58,30 +93,16 @@ up() {
 		-e NEXTCLOUD_ADMIN_PASSWORD=admin \
 		"$NC_IMAGE" >/dev/null
 
-	echo "Waiting for Apache to come up ..."
-	i=0
-	while [ "$i" -lt 60 ]; do
-		if curl -s -o /dev/null "$BASE_URL" 2>/dev/null; then
-			break
-		fi
-		i=$((i + 1))
-		sleep 1
-	done
-	if [ "$i" -ge 60 ]; then
-		echo "Timed out waiting for Apache. See: podman logs $CONTAINER" >&2
-		exit 1
-	fi
+	wait_for_web
 
 	echo "Installing Nextcloud (SQLite, admin/admin) ..."
 	occ maintenance:install --database sqlite --admin-user admin --admin-pass admin
+	set_english
 
 	echo "Installing Collectives from the app store ..."
 	occ app:install collectives >/dev/null
 
-	echo "Deploying the local working tree of collectives_todos ..."
-	podman cp "$APP_DIR" "$CONTAINER":/tmp/collectives_todos_src >/dev/null
-	podman exec "$CONTAINER" sh -c \
-		'cp -r /tmp/collectives_todos_src /var/www/html/apps/collectives_todos && rm -rf /var/www/html/apps/collectives_todos/.git && chown -R www-data:www-data /var/www/html/apps/collectives_todos'
+	deploy_app
 
 	if ! occ app:enable collectives_todos >/dev/null 2>&1; then
 		echo "Failed to enable collectives_todos on Nextcloud $(occ --version 2>/dev/null)." >&2
@@ -157,6 +178,29 @@ put_page() { # $1: WebDAV path, $2: local file
 	esac
 }
 
+page_emoji() { # $1: page title -> emoji from the fixture mapping, empty if none
+	case "$1" in
+	'Product Requirements') echo '📋' ;;
+	'PRD Overview') echo '📄' ;;
+	'API Requirements') echo '🔌' ;;
+	'Security and Compliance') echo '🔒' ;;
+	'Product Strategy') echo '🧭' ;;
+	'Business Case') echo '💼' ;;
+	'Go-to-Market Plan') echo '🚀' ;;
+	'Pricing and Licensing') echo '💰' ;;
+	*) echo '' ;;
+	esac
+}
+
+set_emoji() { # $1: collective id, $2: page id, $3: emoji
+	code="$(ocs -o /dev/null -w '%{http_code}' -X PUT -d "emoji=$3" \
+		"$OCS_API/collectives/$1/pages/$2/emoji")"
+	if [ "$code" != "200" ]; then
+		echo "Failed to set the emoji of page $2 to '$3' (HTTP $code)." >&2
+		exit 1
+	fi
+}
+
 seed() {
 	require_up
 	cid="$(collective_id)"
@@ -191,6 +235,8 @@ seed() {
 				exit 1
 			}
 		fi
+		emoji="$(page_emoji "$title")"
+		[ -z "$emoji" ] || set_emoji "$cid" "$pid" "$emoji"
 		for sub in "$FIXTURES/$title"/*.md; do
 			[ -e "$sub" ] || continue
 			subtitle="$(basename "$sub" .md)"
@@ -202,6 +248,8 @@ seed() {
 					exit 1
 				}
 			fi
+			emoji="$(page_emoji "$subtitle")"
+			[ -z "$emoji" ] || set_emoji "$cid" "$sid" "$emoji"
 		done
 	done
 
@@ -233,6 +281,38 @@ smoke() {
 		echo "PASS: Todos.md exists (HTTP $code)"
 	else
 		echo "FAIL: Todos.md missing (HTTP $code)"
+		failures=$((failures + 1))
+	fi
+
+	# Page emojis: every mapped fixture page carries its emoji, and the Todos
+	# page carries the app's default emoji.
+	cid="$(collective_id)"
+	if [ -n "$cid" ]; then
+		pages_json="$(ocs "$OCS_API/collectives/$cid/pages")"
+		for page in "$FIXTURES"/*.md "$FIXTURES"/*/*.md; do
+			[ -e "$page" ] || continue
+			title="$(basename "$page" .md)"
+			want="$(page_emoji "$title")"
+			[ -n "$want" ] || continue
+			have="$(printf '%s' "$pages_json" | jq -r --arg title "$title" \
+				'.ocs.data.pages[] | select(.title == $title) | .emoji // ""' | head -1)"
+			if [ "$have" = "$want" ]; then
+				echo "PASS: page '$title' has emoji $want"
+			else
+				echo "FAIL: page '$title' has emoji '$have', expected '$want'"
+				failures=$((failures + 1))
+			fi
+		done
+		have="$(printf '%s' "$pages_json" | jq -r \
+			'.ocs.data.pages[] | select(.title == "Todos") | .emoji // ""' | head -1)"
+		if [ "$have" = '📝' ]; then
+			echo "PASS: Todos page has the default emoji 📝"
+		else
+			echo "FAIL: Todos page has emoji '$have', expected 📝"
+			failures=$((failures + 1))
+		fi
+	else
+		echo "FAIL: could not resolve the id of collective '$COLLECTIVE_NAME'"
 		failures=$((failures + 1))
 	fi
 
@@ -316,6 +396,38 @@ smoke() {
 	echo "smoke: all checks passed"
 }
 
+verify() {
+	# One-command check: up (or reuse) -> seed -> smoke -> PHPUnit. On success the
+	# container stays up for manual verification; on failure it stays up for
+	# debugging (teardown is always an explicit 'down'). A reused container is
+	# re-seeded with the current language defaults and the current working tree.
+	if ! container_exists; then
+		up
+	else
+		if [ "$(podman inspect -f '{{.State.Status}}' "$CONTAINER")" = "running" ]; then
+			echo "Reusing running container $CONTAINER ($(occ --version))."
+		else
+			echo "Starting existing container $CONTAINER ..."
+			podman start "$CONTAINER" >/dev/null
+		fi
+		wait_for_web
+		set_english
+		deploy_app
+	fi
+	# seed/smoke abort the script themselves on failure (exit 1), leaving the
+	# container up for debugging; tests/run.sh is a separate process, so its
+	# failure is handled here.
+	seed
+	smoke
+	if ! sh "$APP_DIR/tests/run.sh"; then
+		echo "verify: PHPUnit FAILED - container $CONTAINER left running for debugging." >&2
+		exit 1
+	fi
+	echo "verify: all automated checks passed."
+	echo "Ready for manual verification: $BASE_URL (admin/admin)"
+	echo "Teardown with: $0 down"
+}
+
 status() {
 	if ! container_exists; then
 		echo "No container $CONTAINER."
@@ -334,8 +446,9 @@ clean) clean ;;
 status) status ;;
 seed) seed ;;
 smoke) smoke ;;
+verify) verify ;;
 *)
-	echo "Usage: $0 up|down|clean|status|seed|smoke" >&2
+	echo "Usage: $0 up|down|clean|status|seed|smoke|verify" >&2
 	exit 1
 	;;
 esac

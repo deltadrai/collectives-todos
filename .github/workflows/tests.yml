@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Boot Nextcloud + Collectives + app (functional test rig)
+        run: tests/functional/test-rig.sh up
+
+      - name: Seed fixture collective
+        run: tests/functional/test-rig.sh seed
+
+      - name: Smoke checks (aggregation + reverse sync)
+        run: tests/functional/test-rig.sh smoke
+
+      - name: PHPUnit (Unit + Integration)
+        run: tests/run.sh

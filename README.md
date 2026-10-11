@@ -29,7 +29,7 @@ The same screenshots are published to the Nextcloud app store via `<screenshot>`
 
 ## Requirements
 
-- Nextcloud 27–34
+- Nextcloud 27–35
 - Collectives app 2.0.0+
 - PHP 8.0+
 
@@ -89,8 +89,9 @@ default and can be overridden per collective (an empty field uses the default):
 - **Todos page emoji**: the emoji is written to the Todos page's `collectives_pages` row, exactly
   like the emoji of any other Collectives page, and rendered in the page tree. It is validated the
   same way Collectives validates page emoji (single emoji, max 8 characters). The settings page
-  offers a small curated picker, or paste any emoji directly; empty means no emoji. As with the tree
-  position, manual emoji changes made in Collectives are re-asserted on the next page save.
+  offers a small curated picker, or paste any emoji directly; the default is 📝, and empty means no
+  emoji. As with the tree position, manual emoji changes made in Collectives are re-asserted on the
+  next page save.
 - **Maximum checkboxes**: once the limit is reached, further checkboxes are not cached and the Todos
   page shows a `*(list truncated by the settings limit)*` note under the affected page's section.
 - **Enabled**: the Defaults section has a global Enable/Disable button (the master switch), the
@@ -141,19 +142,33 @@ The `pre-commit` hook lints staged GitHub Actions workflow files with
 `~/.cache/actionlint` on first use). If the binary cannot be obtained, the hook warns and lets
 the commit through.
 
-### Functional test harness
+### Functional test rig
 
-`tests/functional/harness.sh` boots a disposable Nextcloud (SQLite, admin/admin, pinned to the
-newest supported major, override with `NC_IMAGE=...`), installs the latest Collectives from the
+`tests/functional/test-rig.sh` boots a disposable Nextcloud (SQLite, admin/admin, English, pinned to
+the newest supported major, override with `NC_IMAGE=...`), installs the latest Collectives from the
 app store, deploys the local working tree of this app, and seeds a collective from the committed
-fixtures in `tests/functional/fixtures/pages/` (2 pages with 3 subpages each):
+fixtures in `tests/functional/fixtures/pages/` (2 pages with 3 subpages each, each page carrying
+its fixture emoji):
 
-    tests/functional/harness.sh up
-    tests/functional/harness.sh seed
-    tests/functional/harness.sh smoke
+    tests/functional/test-rig.sh up
+    tests/functional/test-rig.sh seed
+    tests/functional/test-rig.sh smoke
 
 `smoke` asserts that the generated Todos page aggregates every checkbox and that ticking a
-checkbox on it is reverse-synced to the source page. Teardown: `tests/functional/harness.sh down`.
+checkbox on it is reverse-synced to the source page. Teardown: `tests/functional/test-rig.sh down`.
+
+For one-command verification (boot or reuse the container, seed, smoke, PHPUnit — `phpunit.phar`
+is downloaded into the container automatically when missing):
+
+    tests/functional/test-rig.sh verify
+
+On success the container stays up at `http://127.0.0.1:8080` (admin/admin) for manual
+verification; on failure it stays up for debugging.
+
+### Continuous integration
+
+`.github/workflows/tests.yml` runs the same checks (test rig boot, seed, smoke, PHPUnit) against
+the newest supported Nextcloud on every PR and push to main.
 
 ## License
 
