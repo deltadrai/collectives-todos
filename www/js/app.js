@@ -18,7 +18,11 @@ const hasGsap = typeof gsap !== 'undefined';
  * demo Todos card slide in staggered from below.
  */
 function heroEntrance() {
-    const heroItems = document.querySelectorAll('#top section > div > div');
+    // Scoped to the hero section: a broader selector here once grabbed the
+    // .reveal heading blocks of the other sections too, whose scroll-triggered
+    // from() tweens then captured opacity 0 as their end value and made the
+    // headings vanish for good when their trigger fired.
+    const heroItems = document.querySelectorAll('#hero > div > div');
     const demoCard = document.querySelector('#todo-demo');
 
     gsap.set([...heroItems], { y: 32, autoAlpha: 0 });
