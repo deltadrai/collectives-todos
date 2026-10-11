@@ -5,7 +5,7 @@
 # latest Collectives in a podman container, and deploys the local working tree
 # of this app into it. Seeding and smoke checks are added by later subcommands.
 #
-# Usage: tests/functional/harness.sh up|down|clean|status
+# Usage: tests/functional/harness.sh up|down|clean|status|seed|smoke
 set -e
 
 CONTAINER=collectives-todos-functest
@@ -17,6 +17,21 @@ BASE_URL="http://127.0.0.1:${PORT}"
 NC_IMAGE="${NC_IMAGE:-docker.io/library/nextcloud:34-apache}"
 
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+FIXTURES="$APP_DIR/tests/functional/fixtures/pages"
+COLLECTIVE_NAME="Aurora Product"
+DAV_FILES="$BASE_URL/remote.php/dav/files/admin"
+
+# Collectives 4.7.1 OCS endpoints (pinned from its appinfo/routes.php):
+#   POST $OCS_API/collectives                        param: name
+#   GET  $OCS_API/collectives                        -> .ocs.data.collectives[]
+#   POST $OCS_API/collectives/{id}/pages/{parentId}  param: title (parentId 0 is
+#                                                    rejected; root pages are
+#                                                    children of the landing page)
+#   GET  $OCS_API/collectives/{id}/pages             -> .ocs.data.pages[]
+# Collectives mounts the collective below the hidden '.Collectives' user folder
+# (lib/Fs/UserFolderHelper.php). Fixture titles contain spaces only, so urlenc
+# only needs to encode those.
+OCS_API="$BASE_URL/ocs/v2.php/apps/collectives/api/v1.0"
 
 occ() {
 	podman exec "$CONTAINER" su -s /bin/sh www-data -c "php /var/www/html/occ $*"
@@ -93,6 +108,107 @@ clean() {
 	down
 }
 
+urlenc() {
+	printf '%s' "$1" | sed 's/ /%20/g'
+}
+
+ocs() {
+	curl -s -u admin:admin -H 'OCS-APIRequest: true' -H 'Accept: application/json' "$@"
+}
+
+require_up() {
+	if ! container_exists; then
+		echo "Container $CONTAINER is not up. Run '$0 up' first." >&2
+		exit 1
+	fi
+}
+
+collective_id() {
+	ocs "$OCS_API/collectives" | jq -r --arg name "$COLLECTIVE_NAME" \
+		'.ocs.data.collectives[] | select(.name == $name) | .id' | head -1
+}
+
+page_id() { # $1: collective id, $2: exact title
+	ocs "$OCS_API/collectives/$1/pages" | jq -r --arg title "$2" \
+		'.ocs.data.pages[] | select(.title == $title) | .id' | head -1
+}
+
+create_page() { # $1: collective id, $2: parent page id, $3: title; echoes page id
+	ocs -d "title=$3" "$OCS_API/collectives/$1/pages/$2" | jq -r '.ocs.data.page.id'
+}
+
+put_page() { # $1: WebDAV path, $2: local file
+	code="$(curl -s -o /dev/null -w '%{http_code}' -u admin:admin \
+		-X PUT -H 'Content-Type: text/markdown' --data-binary @"$2" "$(urlenc "$1")")"
+	case "$code" in
+	201 | 204) ;;
+	*)
+		echo "Failed to write $1 (HTTP $code)." >&2
+		exit 1
+		;;
+	esac
+}
+
+seed() {
+	require_up
+	cid="$(collective_id)"
+	if [ -z "$cid" ]; then
+		echo "Creating collective '$COLLECTIVE_NAME' ..."
+		code="$(ocs -o /dev/null -w '%{http_code}' -d "name=$COLLECTIVE_NAME" "$OCS_API/collectives")"
+		if [ "$code" != "200" ]; then
+			echo "Failed to create collective (HTTP $code)." >&2
+			exit 1
+		fi
+		cid="$(collective_id)"
+	fi
+	[ -n "$cid" ] || {
+		echo "Could not resolve the id of collective '$COLLECTIVE_NAME'." >&2
+		exit 1
+	}
+
+	landing_id="$(ocs "$OCS_API/collectives/$cid/pages" |
+		jq -r '.ocs.data.pages[] | select(.parentId == 0) | .id' | head -1)"
+
+	for top in "$FIXTURES"/*.md; do
+		title="$(basename "$top" .md)"
+		pid="$(page_id "$cid" "$title")"
+		if [ -z "$pid" ]; then
+			pid="$(create_page "$cid" "$landing_id" "$title")"
+			[ -n "$pid" ] || {
+				echo "Failed to create page '$title'." >&2
+				exit 1
+			}
+		fi
+		for sub in "$FIXTURES/$title"/*.md; do
+			[ -e "$sub" ] || continue
+			subtitle="$(basename "$sub" .md)"
+			sid="$(page_id "$cid" "$subtitle")"
+			if [ -z "$sid" ]; then
+				sid="$(create_page "$cid" "$pid" "$subtitle")"
+				[ -n "$sid" ] || {
+					echo "Failed to create page '$subtitle'." >&2
+					exit 1
+				}
+			fi
+		done
+	done
+
+	for top in "$FIXTURES"/*.md; do
+		title="$(basename "$top" .md)"
+		# Creating the first subpage converts the parent page into a folder with
+		# a Readme.md (Collectives PageService::initSubFolder), so the content
+		# of a page with subpages lives at <title>/Readme.md.
+		put_page "$DAV_FILES/.Collectives/$COLLECTIVE_NAME/$title/Readme.md" "$top"
+		for sub in "$FIXTURES/$title"/*.md; do
+			[ -e "$sub" ] || continue
+			put_page "$DAV_FILES/.Collectives/$COLLECTIVE_NAME/$title/$(basename "$sub" .md).md" "$sub"
+		done
+	done
+
+	echo "Seeded '$COLLECTIVE_NAME' (collective $cid):"
+	ocs "$OCS_API/collectives/$cid/pages" | jq -r '.ocs.data.pages[].title' | sort | sed 's/^/  - /'
+}
+
 status() {
 	if ! container_exists; then
 		echo "No container $CONTAINER."
@@ -109,8 +225,9 @@ up) up ;;
 down) down ;;
 clean) clean ;;
 status) status ;;
+seed) seed ;;
 *)
-	echo "Usage: $0 up|down|clean|status" >&2
+	echo "Usage: $0 up|down|clean|status|seed|smoke" >&2
 	exit 1
 	;;
 esac
