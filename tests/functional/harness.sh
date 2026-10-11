@@ -209,6 +209,101 @@ seed() {
 	ocs "$OCS_API/collectives/$cid/pages" | jq -r '.ocs.data.pages[].title' | sort | sed 's/^/  - /'
 }
 
+smoke() {
+	require_up
+	failures=0
+	todos_path="$DAV_FILES/.Collectives/$COLLECTIVE_NAME/Todos.md"
+	orig="$(mktemp)"
+	work="$(mktemp)"
+
+	code="$(curl -s -o "$orig" -w '%{http_code}' -u admin:admin "$(urlenc "$todos_path")")"
+	if [ "$code" = "200" ]; then
+		echo "PASS: Todos.md exists (HTTP $code)"
+	else
+		echo "FAIL: Todos.md missing (HTTP $code)"
+		failures=$((failures + 1))
+	fi
+
+	for page in "$FIXTURES"/*.md "$FIXTURES"/*/*.md; do
+		[ -e "$page" ] || continue
+		title="$(basename "$page" .md)"
+		if grep -qF "## [$title]" "$orig"; then
+			echo "PASS: Todos.md has a section for '$title'"
+		else
+			echo "FAIL: Todos.md has no section for '$title'"
+			failures=$((failures + 1))
+		fi
+	done
+
+	expected="$(grep -rh '^- \[ \]' "$FIXTURES" | grep -c . || true)"
+	actual="$(grep -c '^- \[ \]' "$orig" || true)"
+	if [ "$actual" = "$expected" ]; then
+		echo "PASS: Todos.md aggregates all $expected checkboxes"
+	else
+		echo "FAIL: Todos.md has $actual unchecked items, expected $expected"
+		failures=$((failures + 1))
+	fi
+
+	if [ "$(grep -c '\[x\]' "$orig" || true)" = "0" ]; then
+		echo "PASS: no checked items before reverse sync"
+	else
+		echo "FAIL: Todos.md already contains checked items"
+		failures=$((failures + 1))
+	fi
+
+	# Reverse sync: check one item on the Todos page and expect it to be
+	# checked on its source page afterwards. The task text is globally unique
+	# in the fixture corpus (the app matches checkboxes by text).
+	task="Approve the Q1 strategy deck for the board"
+	cp "$orig" "$work"
+	sed -i "s|^- \[ \] $task\$|- [x] $task|" "$work"
+	code="$(curl -s -o /dev/null -w '%{http_code}' -u admin:admin \
+		-X PUT -H 'Content-Type: text/markdown' --data-binary @"$work" \
+		"$(urlenc "$todos_path")")"
+	if [ "$code" = "201" ] || [ "$code" = "204" ]; then
+		echo "PASS: Todos.md rewritten with one checked item (HTTP $code)"
+	else
+		echo "FAIL: rewriting Todos.md failed (HTTP $code)"
+		failures=$((failures + 1))
+	fi
+
+	curl -s -u admin:admin \
+		"$(urlenc "$DAV_FILES/.Collectives/$COLLECTIVE_NAME/Product Strategy/Readme.md")" >"$work"
+	if grep -qF -- "- [x] $task" "$work"; then
+		echo "PASS: reverse sync checked the task on the source page"
+	else
+		echo "FAIL: reverse sync did not check the task on the source page"
+		failures=$((failures + 1))
+	fi
+
+	curl -s -u admin:admin "$(urlenc "$todos_path")" >"$work"
+	if grep -qF -- "- [x] $task" "$work"; then
+		echo "PASS: regenerated Todos.md keeps the task checked"
+	else
+		echo "FAIL: regenerated Todos.md lost the checked task"
+		failures=$((failures + 1))
+	fi
+
+	# Restore the all-unchecked state so the smoke can be re-run
+	# (the reverse sync just proven is what propagates it back).
+	code="$(curl -s -o /dev/null -w '%{http_code}' -u admin:admin \
+		-X PUT -H 'Content-Type: text/markdown' --data-binary @"$orig" \
+		"$(urlenc "$todos_path")")"
+	if [ "$code" = "201" ] || [ "$code" = "204" ]; then
+		echo "PASS: restored the seeded state (HTTP $code)"
+	else
+		echo "FAIL: restoring the seeded state failed (HTTP $code)"
+		failures=$((failures + 1))
+	fi
+	rm -f "$orig" "$work"
+
+	if [ "$failures" -gt 0 ]; then
+		echo "smoke: $failures check(s) FAILED"
+		exit 1
+	fi
+	echo "smoke: all checks passed"
+}
+
 status() {
 	if ! container_exists; then
 		echo "No container $CONTAINER."
@@ -226,6 +321,7 @@ down) down ;;
 clean) clean ;;
 status) status ;;
 seed) seed ;;
+smoke) smoke ;;
 *)
 	echo "Usage: $0 up|down|clean|status|seed|smoke" >&2
 	exit 1
