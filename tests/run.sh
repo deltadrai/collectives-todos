@@ -9,9 +9,9 @@ APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONTAINER="${CONTAINER:-collectives-todos-functest}"
 
 if ! podman exec "$CONTAINER" test -f /tmp/phpunit.phar; then
-	echo "phpunit.phar missing in container $CONTAINER."
-	echo "Re-download it, e.g.: podman exec $CONTAINER sh -c \"curl -o /tmp/phpunit.phar https://phar.phpunit.de/phpunit.phar\""
-	exit 1
+	echo "phpunit.phar missing in container $CONTAINER - downloading it ..."
+	podman exec "$CONTAINER" sh -c \
+		'curl -fsSL -o /tmp/phpunit.phar https://phar.phpunit.de/phpunit.phar'
 fi
 
 podman exec "$CONTAINER" rm -rf /tmp/collectives_todos_src

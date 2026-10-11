@@ -7,6 +7,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Support for Nextcloud 35: the supported range is now Nextcloud 27–35, and the functional test
+  harness boots `nextcloud:35-apache` by default.
+
+- One-command local verification: `tests/functional/harness.sh verify` boots the newest supported
+  Nextcloud, installs Collectives and the local working tree, seeds the fixture collective, runs
+  the smoke checks and the PHPUnit suite, and leaves the server running at
+  `http://127.0.0.1:8080` (admin/admin) for manual verification when everything is green.
+
+- Continuous integration: `.github/workflows/tests.yml` runs the harness smoke checks and the
+  PHPUnit suite against the newest supported Nextcloud on every PR and push to main.
+
+### Changed
+
+- `tests/run.sh` downloads `phpunit.phar` into the container automatically when it is missing,
+  instead of aborting.
+
 ## [0.1.1] - 2026-10-10
 
 ### Added

@@ -29,7 +29,7 @@ The same screenshots are published to the Nextcloud app store via `<screenshot>`
 
 ## Requirements
 
-- Nextcloud 27–34
+- Nextcloud 27–35
 - Collectives app 2.0.0+
 - PHP 8.0+
 
@@ -154,6 +154,19 @@ fixtures in `tests/functional/fixtures/pages/` (2 pages with 3 subpages each):
 
 `smoke` asserts that the generated Todos page aggregates every checkbox and that ticking a
 checkbox on it is reverse-synced to the source page. Teardown: `tests/functional/harness.sh down`.
+
+For one-command verification (boot or reuse the container, seed, smoke, PHPUnit — `phpunit.phar`
+is downloaded into the container automatically when missing):
+
+    tests/functional/harness.sh verify
+
+On success the container stays up at `http://127.0.0.1:8080` (admin/admin) for manual
+verification; on failure it stays up for debugging.
+
+### Continuous integration
+
+`.github/workflows/tests.yml` runs the same checks (harness boot, seed, smoke, PHPUnit) against
+the newest supported Nextcloud on every PR and push to main.
 
 ## License
 
