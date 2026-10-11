@@ -2,8 +2,11 @@
  * Collectives Todos landing page animations.
  *
  * All initial hidden states are applied by GSAP itself, so the page remains
- * fully readable with JavaScript disabled. Animations run only when the user
- * has not requested reduced motion.
+ * fully readable with JavaScript disabled. Autonomous animations run only
+ * when the user has not requested reduced motion; the scroll-scrubbed demo
+ * video runs in both modes because it only moves while the user scrolls.
+ * Loaded as a classic deferred script (not type="module") so it also works
+ * when the page is opened directly from disk (file://).
  */
 'use strict';
 
@@ -79,8 +82,46 @@ function todoDemoLoop() {
 }
 
 /**
+ * The demo video is played by scrolling: the section pins at the top of the
+ * viewport and the playhead follows the scroll position across the length of
+ * the recording. The scrub runs in both motion modes because it is user-
+ * driven; reduced motion additionally keeps the native controls.
+ */
+function demoVideoScrub(keepControls) {
+    const wrap = document.getElementById('demo-pin');
+    const video = document.getElementById('demo-video');
+    if (!wrap || !video) {
+        if (video) {
+            video.controls = true;
+        }
+        return;
+    }
+
+    video.controls = !!keepControls;
+    video.pause();
+
+    ScrollTrigger.create({
+        trigger: wrap,
+        start: 'top top',
+        // One second of recording per 100px of scrolling, sized once the
+        // duration is known (refreshed on loadedmetadata below).
+        end: () => '+=' + Math.round((isFinite(video.duration) ? video.duration : 30) * 100),
+        pin: true,
+        anticipatePin: 1,
+        onUpdate: (self) => {
+            if (isFinite(video.duration)) {
+                video.currentTime = self.progress * video.duration;
+            }
+        },
+    });
+
+    video.addEventListener('loadedmetadata', () => ScrollTrigger.refresh(), { once: true });
+}
+
+/**
  * Scroll-triggered reveals for section headers, feature/requirement cards
- * and screenshot figures, plus a subtle hover lift on screenshots.
+ * and screenshot figures, plus a hover effect that grows the screenshots
+ * past their frames.
  */
 function scrollReveals() {
     gsap.registerPlugin(ScrollTrigger);
@@ -108,30 +149,55 @@ function scrollReveals() {
     document.querySelectorAll('.shot').forEach((figure) => {
         const img = figure.querySelector('img');
         figure.addEventListener('mouseenter', () => {
-            gsap.to(img, { scale: 1.03, duration: 0.4, ease: 'power2.out' });
+            // Raise the card above its neighbours and grow the screenshot
+            // past its frame while it shrinks back in.
+            gsap.set(figure, { zIndex: 10 });
+            gsap.to(img, {
+                scale: 1.06,
+                boxShadow: '0 16px 40px rgba(34,45,50,0.22)',
+                duration: 0.4,
+                ease: 'power2.out',
+            });
         });
         figure.addEventListener('mouseleave', () => {
-            gsap.to(img, { scale: 1, duration: 0.4, ease: 'power2.out' });
+            gsap.to(img, {
+                scale: 1,
+                boxShadow: '0 0 0 rgba(34,45,50,0)',
+                duration: 0.4,
+                ease: 'power2.out',
+                onComplete: () => gsap.set(figure, { clearProps: 'zIndex' }),
+            });
         });
     });
 }
 
 function init() {
+    const demoVideo = document.getElementById('demo-video');
+
     if (!hasGsap) {
+        if (demoVideo) {
+            demoVideo.controls = true;
+        }
         return;
     }
 
+    gsap.registerPlugin(ScrollTrigger);
+
+    // The video scrub is user-driven — it only moves while scrolling, like a
+    // seek bar — so it runs in both motion modes. Reduced motion keeps the
+    // native controls on top of the scrub. It is created before the scroll
+    // reveals so its pin spacing is in place when they measure.
+    demoVideoScrub(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
     const mm = gsap.matchMedia();
 
-    // Full motion: entrance, demo loop, scroll reveals.
+    // Autonomous animations (entrance, demo loop, scroll reveals) only run
+    // when the user has not requested reduced motion.
     mm.add('(prefers-reduced-motion: no-preference)', () => {
-        gsap.registerPlugin(ScrollTrigger);
         heroEntrance();
         todoDemoLoop();
         scrollReveals();
     });
-
-    // Reduced motion: leave the page fully visible, no timelines.
 }
 
 if (document.readyState === 'loading') {

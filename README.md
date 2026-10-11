@@ -8,13 +8,18 @@ A Nextcloud app that aggregates markdown checkboxes across all pages in a Collec
 
 ## Screenshots
 
-![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181052-an.png)
-![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181350-an.png)
-![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181551-an.png)
-![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181728-an.png)
+A step-by-step walkthrough of the flow, from the auto-generated Todos page to a tick that syncs
+back to its source page:
+
+![The auto-generated Todos page](www/screenshots/steps-1-2.png)
+![Tasks grouped under their source pages](www/screenshots/steps-3-4.png)
+![A source page with its markdown checkboxes](www/screenshots/steps-5-6.png)
+![A checkbox being ticked on the source page](www/screenshots/steps-7-8.png)
+![The regenerated Todos page with the tick synced](www/screenshots/step-9.png)
 
 The same screenshots are published to the Nextcloud app store via `<screenshot>` entries in
-`appinfo/info.xml`.
+`appinfo/info.xml`. The product page (`www/`) also embeds the demo video
+`www/screenshots/demo.mp4`, which plays as you scroll.
 
 ## Features
 
