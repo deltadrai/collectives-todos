@@ -27,10 +27,11 @@ Requires Nextcloud 27–35 and the Collectives app. Developed by deltadrai gmbh 
     <website>https://deltadrai.github.io/collectives-todos/</website>
     <bugs>https://github.com/deltadrai/collectives-todos/issues</bugs>
     <repository>https://github.com/deltadrai/collectives-todos</repository>
-    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/Screenshot--2026-10-10--181052-an.png</screenshot>
-    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/Screenshot--2026-10-10--181350-an.png</screenshot>
-    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/Screenshot--2026-10-10--181551-an.png</screenshot>
-    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/Screenshot--2026-10-10--181728-an.png</screenshot>
+    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/steps-1-2.png</screenshot>
+    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/steps-3-4.png</screenshot>
+    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/steps-5-6.png</screenshot>
+    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/steps-7-8.png</screenshot>
+    <screenshot>https://deltadrai.github.io/collectives-todos/screenshots/step-9.png</screenshot>
     <dependencies>
         <nextcloud min-version="27" max-version="35" />
     </dependencies>

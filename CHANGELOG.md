@@ -35,6 +35,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `tests/run.sh` downloads `phpunit.phar` (pinned to 13.4.1, sha256-verified) into the container
   automatically when it is missing, instead of aborting.
 
+- The app store and product page screenshots are now a five-part step-by-step walkthrough of the
+  flow (Todos page, source page, tick, synced regeneration), replacing the four earlier
+  screenshots, and the product page (`www/`) embeds a demo video (`www/screenshots/demo.mp4`)
+  that plays as you scroll.
+
 ## [0.1.1] - 2026-10-10
 
 ### Added
