@@ -70,11 +70,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            "collectives_todos-v${APP_VERSION}.tar.gz" \
-            "collectives_todos-v${APP_VERSION}.tar.gz.sig" \
-            --title "Collectives Todos v${APP_VERSION}" \
-            --generate-notes
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" \
+              "collectives_todos-v${APP_VERSION}.tar.gz" \
+              "collectives_todos-v${APP_VERSION}.tar.gz.sig" \
+              --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              "collectives_todos-v${APP_VERSION}.tar.gz" \
+              "collectives_todos-v${APP_VERSION}.tar.gz.sig" \
+              --title "Collectives Todos v${APP_VERSION}" \
+              --generate-notes
+          fi
 
       - name: Publish release to the Nextcloud app store
         env:
@@ -85,17 +92,37 @@ jobs:
             exit 0
           fi
           DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/collectives_todos-v${APP_VERSION}.tar.gz"
+
+          # The asset URL is not immediately reachable after the release is
+          # created; wait for it so the app store does not download an error
+          # page and reject the archive.
+          for i in $(seq 1 12); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' -L "$DOWNLOAD_URL")
+            if [ "$CODE" = "200" ]; then
+              break
+            fi
+            echo "Asset not reachable yet (HTTP $CODE), retrying in 15s..."
+            sleep 15
+          done
+
           PAYLOAD=$(jq -n \
             --arg download "$DOWNLOAD_URL" \
             --rawfile signature "collectives_todos-v${APP_VERSION}.tar.gz.sig" \
             '{download: $download, signature: ($signature | gsub("\\s"; "")), nightly: false}')
-          STATUS=$(curl -sS -o /tmp/appstore-response.json -w '%{http_code}' \
-            -X POST https://apps.nextcloud.com/api/v1/apps/releases \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Token ${APPSTORE_TOKEN}" \
-            -d "$PAYLOAD")
-          echo "App store responded with HTTP $STATUS"
-          cat /tmp/appstore-response.json
+          STATUS=""
+          for attempt in 1 2 3; do
+            STATUS=$(curl -sS -o /tmp/appstore-response.json -w '%{http_code}' \
+              -X POST https://apps.nextcloud.com/api/v1/apps/releases \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Token ${APPSTORE_TOKEN}" \
+              -d "$PAYLOAD")
+            echo "App store responded with HTTP $STATUS (attempt $attempt)"
+            cat /tmp/appstore-response.json
+            case "$STATUS" in
+              200|201) break ;;
+              *) sleep 30 ;;
+            esac
+          done
           case "$STATUS" in
             200|201) ;;
             *) echo "::error::Publishing to the app store failed" && exit 1 ;;
