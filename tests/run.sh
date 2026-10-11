@@ -1,10 +1,12 @@
 #!/bin/sh
-# Run the collectives_todos PHPUnit tests inside the systemd-nextcloud container.
+# Run the collectives_todos PHPUnit tests inside a podman container with a Nextcloud
+# install. Default container: the one started by tests/functional/harness.sh;
+# override with CONTAINER=... (phpunit.phar must exist at /tmp/phpunit.phar inside).
 # Usage: tests/run.sh [phpunit args, repo-relative, e.g. tests/Unit]
 set -e
 
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-CONTAINER=systemd-nextcloud
+CONTAINER="${CONTAINER:-collectives-todos-functest}"
 
 if ! podman exec "$CONTAINER" test -f /tmp/phpunit.phar; then
 	echo "phpunit.phar missing in container $CONTAINER."
