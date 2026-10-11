@@ -134,7 +134,15 @@ page_id() { # $1: collective id, $2: exact title
 }
 
 create_page() { # $1: collective id, $2: parent page id, $3: title; echoes page id
-	ocs -d "title=$3" "$OCS_API/collectives/$1/pages/$2" | jq -r '.ocs.data.page.id'
+	resp="$(mktemp)"
+	code="$(ocs -o "$resp" -w '%{http_code}' -d "title=$3" "$OCS_API/collectives/$1/pages/$2")"
+	if [ "$code" != "200" ]; then
+		echo "Failed to create page '$3' under parent '$2' (HTTP $code)." >&2
+		rm -f "$resp"
+		return 1
+	fi
+	jq -r '.ocs.data.page.id' <"$resp"
+	rm -f "$resp"
 }
 
 put_page() { # $1: WebDAV path, $2: local file
@@ -168,6 +176,10 @@ seed() {
 
 	landing_id="$(ocs "$OCS_API/collectives/$cid/pages" |
 		jq -r '.ocs.data.pages[] | select(.parentId == 0) | .id' | head -1)"
+	[ -n "$landing_id" ] || {
+		echo "Could not resolve the landing page of collective $cid." >&2
+		exit 1
+	}
 
 	for top in "$FIXTURES"/*.md; do
 		title="$(basename "$top" .md)"
