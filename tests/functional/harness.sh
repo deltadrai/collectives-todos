@@ -325,20 +325,18 @@ verify() {
 	if ! container_exists; then
 		up
 	elif [ "$(podman inspect -f '{{.State.Status}}' "$CONTAINER")" = "running" ]; then
-		echo "Reusing running container $CONTAINER."
+		echo "Reusing running container $CONTAINER ($(occ --version))."
+		wait_for_web
 	else
 		echo "Starting existing container $CONTAINER ..."
 		podman start "$CONTAINER" >/dev/null
 		wait_for_web
 	fi
-	if ! seed; then
-		echo "verify: seeding FAILED - container $CONTAINER left running for debugging." >&2
-		exit 1
-	fi
-	if ! smoke; then
-		echo "verify: smoke FAILED - container $CONTAINER left running for debugging." >&2
-		exit 1
-	fi
+	# seed/smoke abort the script themselves on failure (exit 1), leaving the
+	# container up for debugging; tests/run.sh is a separate process, so its
+	# failure is handled here.
+	seed
+	smoke
 	if ! sh "$APP_DIR/tests/run.sh"; then
 		echo "verify: PHPUnit FAILED - container $CONTAINER left running for debugging." >&2
 		exit 1

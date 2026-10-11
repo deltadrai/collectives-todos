@@ -2,7 +2,7 @@
 
 Nextcloud app `collectives_todos` (namespace `OCA\CollectiveTodos`): aggregates markdown checkboxes
 across Collectives pages into a "Todos" page, with reverse-sync back to source pages.
-PHP 8.0+, Nextcloud 27–34, depends on the `collectives` app.
+PHP 8.0+, Nextcloud 27–35, depends on the `collectives` app.
 
 ## Project layout
 
