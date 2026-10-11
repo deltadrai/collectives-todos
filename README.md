@@ -5,10 +5,10 @@ A Nextcloud app that aggregates markdown checkboxes across all pages in a Collec
 
 ## Screenshots
 
-![Todos page in a collective](screenshots/Screenshot--2026-10-10--181052-an.png)
-![Todos page in a collective](screenshots/Screenshot--2026-10-10--181350-an.png)
-![Todos page in a collective](screenshots/Screenshot--2026-10-10--181551-an.png)
-![Todos page in a collective](screenshots/Screenshot--2026-10-10--181728-an.png)
+![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181052-an.png)
+![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181350-an.png)
+![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181551-an.png)
+![Todos page in a collective](www/screenshots/Screenshot--2026-10-10--181728-an.png)
 
 The same screenshots are published to the Nextcloud app store via `<screenshot>` entries in
 `appinfo/info.xml`.
